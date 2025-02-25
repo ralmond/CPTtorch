@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Emacs backups and autosave
+*~
+\#*\#
+*/*~
+R/Link.R~
