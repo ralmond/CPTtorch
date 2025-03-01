@@ -1,99 +1,67 @@
-LinkFunction <- function(name,fun,etWidth=-1L,
-                         scaleType=character()) {
-  if (length(scaleType)==0L) {
-    sPType<-NULL
-  } 
-  if (length(scaleType) > 1L) {
-    stop("Unrecognized link scale type ", scaleType)
-  }
-  if (is.character(scaleType)) {
-    sPType <- getPType(scaleType) 
-    if (is.null(sPType))
-      stop("Unrecognized link scale type ", scaleType)
-  }
-  if (!is.null(sPType) && !is(sPType,"PType")) {
-    stop("Invalid scale type",scaleType)
-  } 
-  if (length(etWidth)!=1L)
-    stop("etWidth must be a integer vector of length 1")
-  res <- list(name=name,fun=fun,etWidth=as.integer(etWidth),
-              sPType=sPType)
-  class(res) <- "LinkFunction"
-  res
+CPT_Link <- nn_module(
+    classname="CPT_Link",
+    link=identity,
+    scale=NULL,
+    etWidth=function() {self$K-1},
+    private=list(
+      k=NA,
+      stype=NULL,
+    ),
+    initialize=function(states) {
+      if (is.character(states))
+        private$k <- length(states)
+      else private$k <- states
+      if (!is.null(private$stype)) {
+        private$stype <- setpTypeDim(private$stype,K=private$k)
+        self$linkScale <- torch_tensor(defaultParameter(private$stype))
+      }
+    },
+    forward=function(input) {
+      self$link(input)
+    },
+   active=list(
+       K=function(){private$k},
+       sType=function(value) {
+          if (missing(value)) return (private$stype)
+          if (!is(value,"PType"))
+            abort("The scale type field must be a PType object.")
+          private$stype <- value
+          if (!is.na(private$K)) {
+            olddim <- pTypeDim(private$stype)
+            private$stype <- setpTypeDim(private$stype,K=private$k)
+            if (!isTRUE(all.equal(olddim, pTypeDim(private$stype))))
+              self$linkScale <- torch_tensor(defaultParameter(private$stype))
+          }
+          invisible(self)
+       },
+       linkScale=function(value) {
+          if (missing(value)) {
+            if (is.null(self$scale)) return (NULL)
+            return (tvec2natpar(private$stype,self$scale))
+          }
+          pcheck <- checkParam(private$sType,value)
+          if (!isTRUE(pcheck))
+            abort("Illegal link scale parameter value,",pcheck,".")
+          self$sVec <- nn_parameter(pMat2tvec10(private$sType,value))
+          invisible(self)
+        }
+    )
 }
-setOldClass("LinkFunction")
 
 
 
-LinkedList <- list()
+LinkedList <- new.env()
 getLink <- function (linkname) {
-  whichType <- pmatch(linkname,names(LinkedList))
-  if (is.na(whichType)) return (NULL)
-  LinkedList[[whichType]]
+  LinkedList(linkname)
 }
-setLink <- function (linkname,ptype) {
-  if (!is.null(ptype) && !is(ptype,"PType"))
-    stop("Second argument must be a PType or NULL.")
-  LinkedList[[linkname]] <- ptype
-  assignInMyNamespace("LinkedList",LinkedList)
+setLink <- function (linkname,value) {
+  if (!is.null(value) || !is(ptype,"CPT_Link"))
+    stop("Second argument must be a CPT_Link or NULL.")
+  LinkedList[[linkname]] <- value
 }
-availableLinkss <- function() {
+availableLinks <- function() {
   names(LinkedList)
 }
-
-
-
-
-setGeneric("linkFast",function(link,et,linkScale=NULL,nobs=2)
-  standardGeneric("linkFast"))
-setMethod("linkFast",c("LinkFunction"),
-          function(link,et,linkScale=NULL,nobs=2) {
-            link$fun(et,linkScale,nobs)
-          })
-setMethod("linkFast",c("character"),
-          function(link,et,linkScale=NULL,nobs=2) {
-            whichLink <- pmatch(link,names(LinkedList))
-            if (is.null(whichLink))
-              stop ("No link function registered for ",link)
-            LinkedList[[whichLink]]$fun(et,linkScale,nobs)
-          })
-
-
-setGeneric("linkSafe",function(link,et,linkScale=NULL,obsLevels=NULL)
-  standardGeneric("linkSafe"))
-setMethod("linkSafe",c("LinkFunction"),
-          function(link,et,linkScale=NULL,obsLevels=NULL) {
-            mm <- ifelse(link$etWidth>0L,link$etWidth,nobs+link$etWidth)
-            if (mm > 0L && mm != ncol(et)) {
-              stop("The et matrix should have ", mm, " columns.")
-            }
-            whichLink <- pmatch(link,names(LinkedList))
-            if (is.null(whichLink))
-              stop ("No link function registered for ",link)
-            sptype <- LinkedList[[whichLink]]$sPType
-            if (is.null(sptype)) {
-              if(length(linkScale)>0L)
-                stop("No scale parameter expected, but one was supplied.")
-            } else {
-              typeCheck <- sptype$checker(linkScale)
-              if (!isTRUE(typeCheck))
-                stop("Bad LinkScale: ",typeCheck)
-            }
-            probs <- LinkedList[[whichLink]]$fun(et,linkScale,nobs)
-            if (!is.null(obsLevels)) {
-              dimnames(probs) <- list(NULL,obsLevels)
-            }
-            probs
-          })
-setMethod("linkSafe",c("character"),
-          function(link,et,linkScale=NULL,obsLevels=NULL) {
-            whichLink <- pmatch(link,names(LinkedList))
-            if (is.null(whichLink))
-              stop ("No link function registered for ",link)
-            linkSafe(LinkedList[[whichLink]],et,linkScale,obsLevels)
-          })
-
-
 
 
 ### Link Functions
@@ -112,114 +80,192 @@ setMethod("linkSafe",c("character"),
 
 ### It returns a conditional probability table.
 
-identityLink0 <- function(et,linkScale=NULL,nobs=2) {
-  et <- ifelse(et<0,0,et)
-  sweep(et,1,apply(et,1,sum),"/")
-}
+PotentialLink <- nn_module(
+    classname="PotentialLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {self$K},
+    link=function(et) {
+      torch_2simplex(et)
+    },
+    private=list(
+      stype=NULL,
+      )
+)
 
-LinkedList$identity <- LinkFunction("identity",identityLink0,0,NULL)
+StepProbsLink <- nn_module(
+    classname="StepProbsLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {self$K-1},
+    link=function(et) {
+      torch_2simplex(
+          torch_hstack(list(et,torch_ones(ncol(et),1)))$
+          fliplr_()$cumprod_(2)$fliplr_())
+    },
+    private=list(
+      stype=NULL,
+      )
+)
 
-stepProbLink0 <- function (et,LinkScale=NULL,nobs=2) {
-  zt <- apply(cbind(et,1),1,function(x) rev(cumprod(rev(x))))
-  identityLink0(zt,LinkScale)
-}
+DifferenceLink <- nn_module(
+    classname="DifferenceLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {self$K-1},
+    link=function(et) {
+      torch_hstack(list(torch_zeros(ncol(et),1),et,torch_ones(ncol(et),1)))$
+        cummax_(2)$diff_()$clip_(0,1)
+    },
+    private=list(
+      stype=NULL,
+      )
+)
 
-LinkedList$stepProb <- LinkFunction("stepProb",stepProbLink0,-1,NULL)
-
-
-diffLink0 <- function(et,LinkScale=NULL,nobs=2) {
-  m <- ncol(et)+1
-  pt <- apply(cbind(0,et,1),1,cummax)
-  pt[,2:(m+1),drop=FALSE]-pt[,1:m,drop=FALSE]
-  identityLink0(pt,LinkScale)
-}
-
-LinkedList$diff <- LinkFunction("diff",diffLink0,-1,NULL)
-
-
-softMax0 <- function(et,linkScale=NULL,nobs=2) {
-  identityLink0(exp(1.7*et),linkScale)
-}
-
-LinkedList$softMax <- LinkFunction("softMax",softMax0,0,NULL)
-
-partialCredit0 <- function (et,linkScale=NULL,nobs=2) {
-  zt <- apply(cbind(et,0),1,function(x) rev(cumsum(rev(x))))
-  identityLink0(exp(1.7*zt),linkScale)
-}
-
-
-
-LinkedList$partialCredit <- LinkFunction("partialCredit",partialCredit0,
-                                         -1,NULL)
-
-gradedResponse0 <- function (et,linkScale=NULL,nobs=2) {
-  zt <- 1/(1+exp(-1.7*cbind(-Inf,et,Inf)))
-  pt <- apply(zt,1,cummax)
-  pt[,2:(nobs+1),drop=FALSE]-pt[,1:nobs,drop=FALSE]
-}
-
-
-LinkedList$gradedResponse <- LinkFunction("gradedResponse",gradedResponse0,
-                                         -1,NULL)
-
-
-normalLink0 <- function(et,linkScale=NULL,nobs=2) {
-  m <- nobs
-  cuts <- qnorm( ((m-1):1)/m)
-  ## Only play attention to the first column.
-  pt <- pnorm(outer(-et[,1],cuts,"+")/linkScale)
-  pt <- cbind(1,pt,0)
-  pt[,1:m]-pt[,1+(1:m)]
-}
-
-LinkedList$normal <- LinkFunction("normal",normalLink0,1,"pos")
+SoftmaxLink <- nn_module(
+    classname="SoftmaxLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    D=torch_tensor(1.7)
+    etWidth=function() {self$K},
+    link=function(et) {
+      nnf_softmax(et$mul_(self$D),2)
+    },
+    private=list(
+      stype=NULL,
+      )
+)
 
 
-noisyLink0 <- function(et,linkScale=NULL,nobs=2) {
-  et <- cbind(et,1-rowSums(et))
-  identityLink0(et %*% linkScale)
-}
+GradedResponseLink <- nn_module(
+    classname="GradedResponseLink",
+    inherits=DifferenceLink,
+    D=torch_tensor(1.7)
+    scale=NULL,
+    etWidth=function() {self$K-1},
+    link=function(et) {
+      torch_hstack(list(torch_zeros(ncol(et),1),nnf_sigmoid(et$mul_(self$D)),
+                        torch_ones(ncol(et),1)))$
+        cummax_(2)$diff_()$clip_(0,1)
+    },
+    private=list(
+      stype=NULL,
+      )
+)
 
-LinkedList$noisy <- LinkFunction("noisy",noisyLink0,-1,"cpmat")
+PartialCreditLink <- nn_module(
+    classname="PartialCreditLink",
+    inherits=StepProbsLink,
+    scale=NULL,
+    etWidth=function() {self$K-1},
+    link=function(et) {
+      torch_2simplex(
+          torch_hstack(list(et,torch_zeroes(ncol(et),1)))$
+          fliplr_()$cumsum_(2)$fliplr_()$
+          mul_(self$D)$nnf_sigmoid())
+    },
+    private=list(
+      stype=NULL,
+      )
+)
 
 
-guessmat <- function(n,g) {
-  mat <- matrix(0,n,n)
-  for(nn in 1:(n-1)) 
-    mgcv::sdiag(mat,nn) <- g^nn
-  diag(mat) <- 1-rowSums(mat)
-  mat
-}
-slipmat <- function(n,s) {
-  mat <- matrix(0,n,n)
-  for(nn in 1:(n-1)) 
-    mgcv::sdiag(mat,-nn) <- s^nn
-  diag(mat) <- 1-rowSums(mat)
-  mat
-}
 
-slipLink0 <- function(et,linkScale=NULL,nobs=2) {
-  mat <- slipmat(nobs,linkScale)
-  noisyLink0(et,mat)
-}
+GaussianLink <- nn_module(
+    classname="GaussianLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {1},
+    link=function(et) {
+      pt <- torch_pnorm(self$cuts$sub_(et)$div_(self$linkScale))
+      torch_hstack(list(torch_zeros(ncol(et),1),pt,torch_ones(ncol(et),1)))$
+        diff_(2)
+    },
+    private=list(
+        stype=setpTypeDim(PType("pos",1))
+        cuts=NULL,
+        ),
+    active=list(
+        Cuts = function() {
+          if (is.null(private$cuts)) {
+            private$cuts <-torch_tensor(matrix(qnorm(((self$k-1L):1L)/self$k),
+                                               1L,self$k))
+          }
+          private$cuts
+        })
+)
 
-LinkedList$slip <- LinkFunction("slip",slipLink0,-1,"unit")
+NoisyLink <- nn_module(
+    classname="NoisyLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {K-1},
+    link=function(et) {
+      torch_hstack(et,torch_sum(et,2)$neg_()$add_(1))$
+        matmul_(self$linkScale)
+    },
+    private=list(
+        stype=PType("cpMat",c(K,K))
+    )
+)
+
+SlipLink <- nn_module(
+    classname="SlipLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {K-1},
+    link=function(et) {
+      torch_hstack(et,torch_sum(et,2)$neg_()$add_(1))$
+        matmul_(torch_slipmat(self$K,self$linkScale))
+    },
+    private=list(
+        stype=PType("unit",c(1))
+    )
+)
+
+GuessLink <- nn_module(
+    classname="GuessLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {K-1},
+    link=function(et) {
+      torch_hstack(et,torch_sum(et,2)$neg_()$add_(1))$
+        matmul_(torch_guessmat(self$K,self$linkScale))
+    },
+    private=list(
+        stype=PType("unit",c(1))
+    )
+)
+
+GuessSlipLink <- nn_module(
+    classname="GuessSlipLink",
+    inherits=CPT_Link,
+    scale=NULL,
+    etWidth=function() {K-1},
+    link=function(et) {
+      torch_hstack(et,torch_sum(et,2)$neg_()$add_(1))$
+        matmul_(torch_guessmat(self$K,self$linkScale[1]))$
+        matmul_(torch_slipmat(self$K,self$linkScale[2]))
+    },
+    private=list(
+        stype=PType("unit",c(2))
+    )
+)
 
 
-guessLink0 <- function(et,linkScale=NULL,nobs=2) {
-  mat <- guessmat(nobs,linkScale)
-  noisyLink0(et,mat)
-}
 
-LinkedList$guess <- LinkFunction("guess",guessLink0,-1,"unit")
+setLink("Potential",PotentialLink)
+setLink("StepProbs",StepProbsLink)
+setLink("Difference",DifferenceLink)
+setLink("GradedResponse",GradedResponseLink)
+setLink("PartialCredit",PartialCreditLink)
+setLink("Normal",GaussianLink)
+setLink("Gaussian",GaussianLink)
+setLink("Softmax",SoftmaxLink)
+setLink("Noisy",NoisyLink)
+setLink("Slip",SlipLink)
+setLink("Guess",GuessLink)
+setLink("GuessSlip",GuessSlipLink)
 
-slipGuessLink0 <- function(et,linkScale=NULL,nobs=2) {
-  mat <- guessmat(nobs,linkScale[2])%*%
-    slipmat(nobs,linkScale[1])
-  noisyLink0(et,mat)
-}
 
-LinkedList$slipGuess <- LinkFunction("slipGuess",slipGuessLink0,-1,
-                                     "unit")
 

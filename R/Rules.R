@@ -42,21 +42,28 @@ RuleASB <- nn_module(
       self$eTheta <- buildeTheta10(parents)
       private$SJK <- c(as.list(self$eTheta$shape()),list(nstates))
       names(private$SJK) <- c("S","J","K")
-      private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
-      private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
+      if (!is.null(private$atype))
+        private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
+      if (!is.null(private$btype))
+        private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
+
       self$QQ <- QQ
-      self$aMat <- torch_tensor(defaultParameter(private$atype))
-      self$bMat <- torch_tensor(defaultParameter(private$btype))
+      if (!is.null(private$atype))
+        self$aMat <- torch_tensor(defaultParameter(private$atype))
+      if (!is.null(private$btype))
+        self$bMat <- torch_tensor(defaultParameter(private$btype))
     },
-    forward = function() {
+    forward = function(input) {
       if (!isTRUE(self$QQ)) {
-        exec(self$postscale,
-             genMMt(self$eTheta,self$aMat,self$prescale,self$summary),
-             self$bMat)
+        self$postscale(
+                 genMMtQ(self$eTheta,self$aMat,self$QQ,
+                         self$prescale,self$summary),
+                 self$bMat)
       } else {
-        exec(self$postscale,
-             genMMt(self$eTheta,self$aMat,self$prescale,self$summary),
-             self$bMat)
+        self$postscale(
+                 genMMt(self$eTheta,self$aMat,
+                        self$prescale,self$summary),
+                 self$bMat)
       }
     },
     private=list(
@@ -72,9 +79,10 @@ RuleASB <- nn_module(
             abort("The aType field must be a PType object.")
           private$atype <- value
           if (!is.null(private$SJK)) {
-            exec(setpTypeDim,private$atype,!!!private$SJK)
+            private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
             self$aMat <- torch_tensor(defaultParam(private$atype))
           }
+          invisible(self)
         },
         bType=function(value) {
           if (missing(value)) return (private$btype)
@@ -82,44 +90,51 @@ RuleASB <- nn_module(
             abort("The bType field must be a PType object.")
           private$btype <- value
           if (!is.null(private$SJK)) {
-            exec(setpTypeDim,private$btype,!!!private$SJK)
+            private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
             self$bMat <- torch_tensor(defaultParam(private$btype))
+          invisible(self)
           }
         },
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$atype))
           if (!is.logical)
             abort("The QQ field must be a logical matrix or TRUE")
-          whichUsed(private$aType) <- value
+          whichUsed(private$atype) <- value
+          invisible(self)
         },
         aMat=function(value) {
           if (missing(value)) {
             if (is.null(self$aVec)) return (NULL)
-            return (tvect2pMat10(private$aType,self$aVec))
+            return (tvect2pMat10(private$atype,self$aVec))
           }
-          pcheck <- checkParam(private$aType,value)
+          pcheck <- checkParam(private$atype,value)
           if (!isTRUE(pcheck))
             abort("Illegal A parameter value,",pcheck,".")
           private$cache <- NULL
-          self$aVec <- nn_parameter(pMat2tvec10(private$aType,value))
+          self$aVec <- nn_parameter(pMat2tvec10(private$atype,value))
+          invisible(self)
         },
         bMat=function(value) {
           if (missing(value)) {
             if (is.null(self$bVec)) return (NULL)
-            return (tvect2pMat10(private$bType,self$bVec))
+            return (tvect2pMat10(private$btype,self$bVec))
           }
-          pcheck <- checkParam(private$bType,value)
+          pcheck <- checkParam(private$btype,value)
           if (!isTRUE(pcheck))
             abort("Illegal A parameter value,",pcheck,".")
           private$cache <- NULL
-          self$bVec <- nn_parameter(pMat2tvec10(private$bType,value))
+          self$bVec <- nn_parameter(pMat2tvec10(private$btype,value))
+          invisible(self)
         },
-        cpt = function() {
+        et = function() {
           if (is.null(private$cache))
             private$cache <- self$forward()
           private$cache
         },
-        paramsupdated = function() { is.null(private$cache)}
+        et_p = function(value) {
+          if (missing(value)) return(is.null(private$cache))
+          if (isFALSE(value)) private$cache <- NULL
+          inivisble(self)
     )
 }
 
@@ -130,15 +145,17 @@ RuleBSA <- nn_module(
     prescale <- torch_sum,
     summary <- torch_max,
     postscale <- torch_mul,
-    forward = function() {
+    forward = function(input) {
       if (!isTRUE(self$QQ)) {
-        exec(self$postscale,
-             genMMt(self$eTheta,self$bMat,self$prescale,self$summary),
-             self$aMat)
+        self$postscale(
+                 genMMtQ(self$eTheta,self$bMat,self$QQ,
+                         self$prescale,self$summary),
+                 self$aMat)
       } else {
-        exec(self$postscale,
-             genMMt(self$eTheta,self$bMat,self$prescale,self$summary),
-             self$aMat)
+        self$postscale(
+                 genMMt(self$eTheta,self$bMat,
+                        self$prescale,self$summary),
+                 self$aMat)
       }
     },
     private=list(
@@ -150,7 +167,8 @@ RuleBSA <- nn_module(
           if (missing(value)) return (whichUsed(private$btype))
           if (!is.logical)
             abort("The QQ field must be a logical matrix or TRUE")
-          whichUsed(private$bType) <- value
+          whichUsed(private$btype) <- value
+          invisible(self)
         }
     )
 }
@@ -161,14 +179,23 @@ RuleBAS <- nn_module(
     prescale <- torch_sum,
     summary <- torch_max,
     postscale <- torch_mul,
-    forward = function() {
+    forward = function(input) {
       if (!isTRUE(self$QQ)) {
-        genMMt(exec(self$prescale,self$eTheta,self$bMat,self$prescale),
-               self$aMat,self$postscale,self$summary)
+        tmp <- self$postscale(
+                        self$prescale(self$eTheta,
+                                      self$bMat$reshape(1,dim(self$bMat))),
+                        self$aMat$reshape(1,dim(self$aMat))),
+        result <- torch_empty(private$SJK[c("S","K")])
+        for (kk in 1L:private$SJK["K"])
+          result[,kk] <- self$summary(tmp[,which(self$QQ[kk,]),kk],2)
+        result
       } else {
-        exec(self$postscale,
-             genMMt(self$eTheta,self$bMat,self$prescale,self$summary),
-             self$aMat)
+        self$summary(
+                 self$postscale(
+                          self$prescale(self$eTheta,
+                                        self$bMat$reshape(1,dim(self$bMat))),
+                          self$aMat$reshape(1,dim(self$aMat))),
+                 2)
       }
     },
     private=list(
@@ -180,25 +207,43 @@ RuleBAS <- nn_module(
           if (missing(value)) return (whichUsed(private$btype))
           if (!is.logical)
             abort("The QQ field must be a logical matrix or TRUE")
-          whichUsed(private$bType) <- value
+          whichUsed(private$btype) <- value
+          invisible(self)
         }
     )
 }
 
+
+
+
 RuleConstB <- nn_module(
     classname="RuleConstB"
     inherit = RuleASB,
-    forward = function() {self$bMat},
+    forward = function(input) {self$bMat},
     private=list(
-        atype=PType("const",c(K,J)),
+        atype=NULL,
         btype=PType("const",c(K,J)),
         ),
     active = list(
+        aType=function(value) {
+          if (missing(value)) return (private$atype)
+          warning("A Type is ignored in ConstB Rules.")
+          invisible(self)
+        },
+        aMat=function(value) {
+          if (missing(value)) {
+            if (is.null(self$aVec)) return (NULL)
+            return (tvect2pMat10(private$atype,self$aVec))
+          }
+          warning("A parameter is ignored in ConstB Rules.")
+          invisible(self)
+        },
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$btype))
           if (!is.logical)
             abort("The QQ field must be a logical matrix or TRUE")
-          whichUsed(private$bType) <- value
+          whichUsed(private$btype) <- value
+          invisible(self)
         }
     )
 }
@@ -206,19 +251,143 @@ RuleConstB <- nn_module(
 RuleConstA <- nn_module(
     classname="RuleConstA",
     inherit = RuleASB,
-    forward = function() {self$aMat},
+    forward = function(input) {self$aMat},
     private=list(
         atype=PType("const",c(K,J)),
-        btype=PType("const",c(K,J)),
+        btype=NULL,
         ),
     active = list(
+        bType=function(value) {
+          if (missing(value)) return (private$btype)
+          warning("B Type is ignored in ConstA Rules.")
+          invisible(self)
+        },
+        bMat=function(value) {
+          if (missing(value)) {
+            if (is.null(self$bVec)) return (NULL)
+            return (tvect2pMat10(private$btype,self$aVec))
+          }
+          warning("B parameter is ignored in ConstB Rules.")
+          invisible(self)
+        },
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$atype))
           if (!is.logical)
             abort("The QQ field must be a logical matrix or TRUE")
-          whichUsed(private$aType) <- value
+          whichUsed(private$atype) <- value
+          invisible(self)
         }
     )
+}
+
+
+CompensatoryRule <- nn_module(
+    classname="CompensatoryRule",
+    inherit = RuleASB,
+    prescale <- torch_sum,
+    summary <- torch_rootk,
+    postscale <- torch_mul,
+    private=list(
+        atype=PType("pos",c(K,J)),
+        btype=PType("real",c(K,1)),
+        rootk=NA
+    ),
+    initialize=function(parents, nstates, QQ=true, ...) {
+      super$initialize(parents,nstates,QQ,...)
+      private$rootk <- torch_tensor(1/sqrt(private$SJK$K))
+    },
+    forward = function(input) {
+      if (!isTRUE(self$QQ)) {
+        self$postscale(
+                 genMMtQ(self$eTheta,self$aMat,self$QQ,
+                         self$prescale,self$summary),
+                 self$bMat)
+      } else {
+        ## Using built-in matrix multiplication should be faster
+        torch_matmul(self$eTheta, self$aMat$t_())$
+          mul_(private$rootk)$
+          add_(self$bMat)
+      }
+    }
+    )
+}
+
+ConjunctiveRule <- nn_module(
+    classname="ConjunctiveRule",
+    inherit = RuleBSA,
+    prescale <- torch_sub,
+    summary <- torch_min,
+    postscale <- torch_mul,
+    private=list(
+        atype=PType("pos",c(K,1)),
+        btype=PType("real",c(K,J))
+     )
+}
+
+DisjunctiveRule <- nn_module(
+    classname="DisjunctiveRule",
+    inherit = RuleBSA,
+    prescale <- torch_sub,
+    summary <- torch_max,
+    postscale <- torch_mul,
+    private=list(
+        atype=PType("pos",c(K,1)),
+        btype=PType("real",c(K,J))
+     )
+}
+
+
+NoisyAndRule <- nn_module(
+    classname="NoisyAndRule",
+    inherit = RuleBAS,
+    prescale <- torch_gt,
+    summary <- torch_prod,
+    postscale <- torch_mul,
+    private=list(
+        atype=PType("pos",c(K,J)),
+        btype=PType("real",c(K,J))
+     )
+}
+
+NoisyOrRule <- nn_module(
+    classname="NoisyAndRule",
+    inherit = RuleBAS,
+    prescale <- torch_gt,
+    summary <- torch_prodq,
+    postscale <- torch_mul,
+    private=list(
+        atype=PType("pos",c(K,J)),
+        btype=PType("real",c(K,J))
+     )
+}
+
+
+
+
+
+
+CenterRule <- nn_module(
+    classname="CenterRule",
+    inherit = RuleConstB,
+    prescale <- identity,
+    summary <- torch_mean,
+    postscale <- identity,
+    private=list(
+        atype=NULL,
+        btype=PType("real",c(S,K))
+     )
+}
+
+DirichletRule <- nn_module(
+    classname="DirichletRule",
+    inherit = RuleConstB,
+    prescale <- identity,
+    summary <- torch_mean,
+    postscale <- identity,
+    private=list(
+        atype=NULL,
+        btype=PType("real",c(S,K))
+     )
 }
 
 
@@ -230,62 +399,14 @@ setRule <- function(name,value) {
     stop("Value must be a CombinationRule")
   env_poke(RuleSet,name,value)
 }
+availableRules <- function() names(RuleSet)
 
-
-
-CompensatoryRule <- nn_module(
-    classname="CompensatoryRule",
-    inherit = RuleASB,
-    prescale <- torch_sum,
-    summary <- torch_rootk,
-    postscale <- torch_mul,
-    forward = function() {
-      if (!isTRUE(self$QQ)) {
-        exec(self$postscale,
-             genMMt(self$eTheta,self$bMat,self$prescale,self$summary),
-             self$aMat)
-      } else {
-        exec(self$postscale,
-             genMMt(self$eTheta,self$bMat,self$prescale,self$summary),
-             self$aMat)
-      }
-    },
-    active = list(
-        QQ=function(value) {
-          if (missing(value)) return (whichUsed(private$btype))
-          if (!is.logical)
-            abort("The QQ field must be a logical matrix or TRUE")
-          whichUsed(private$bType) <- value
-        }
-    )
-}
-
-
-setRule("Compensatory",
-  CombinationRule("Compensatory","ASBRule","*",sumrootk,"-",
-                  PType("pos",c(K,J)),PType("real",c(K,1))))
-setRule("Conjunctive",
-  CombinationRule("Conjunctive","BSARule","-",min,"*",
-                  PType("pos",c(K,1)),PType("real",c(K,J))))
-setRule("Disjunctive",
-  CombinationRule("Disjunctive","BSARule","-",max,"*",preparam="B",
-                  PType("pos",c(K,1)),PType("real",c(K,J))))
-setRule("NoisyAnd",
-  CombinationRule("NoisyAnd","BASRule",">",prod,"*",preparam="AB",
-                  PType("unit",c(K,J)),PType("real",c(K,J))))
-setRule("NoisyAnd",
-  CombinationRule("NoisyOr","BASRule",">",prodq,"*",
-                  PType("unit",c(K,J)),PType("real",c(K,J))))
-
-setRule("constB1",
-  CombinationRule("constB1","constB",identity,mean,identity,
-                  PType("real",c(0,0)),PType("real",c(1,1))))
-setRule("DirichletRule",
-  CombinationRule("Dirichlet","constB",identity,mean,identity,
-                  PType("real",c(0,0)),PType("pvec",c(1,K))))
-setRule("hyperDirichletRule",
-  CombinationRule("hyperDirichlet","constB",identity,mean,identity,
-                  PType("real",c(0,0)),PType("cpMat",c(S,K))))
-
+setRule("Compensatory",CompensatoryRule)
+setRule("Conjunctive",ConjunctiveRule)
+setRule("Disjunctive",DisjunctiveRule)
+setRule("NoisyAnd",NoisyAndRule)
+setRule("NoisyOr",NoisyOrRule)
+setRule("Center",CenterRule)
+setRule("Dirichlet",DirichletRule)
 
 
