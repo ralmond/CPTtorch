@@ -20,13 +20,11 @@ eTheta10 <- function (dims) {
 }
 
 buildeTheta10 <- function(parents) {
-  if (is.numeric(parents)) return(eTheta10(parents))
-  if (all(sapply(parents,is.character)))
-    return(eTheta10(sapply(parents,length)))
-  if (all(sapply(parents,is.numeric)))
-    return(torch_cartisian_product(parents))
-  abort("Input to buildeTheta10 must be a vector of dims, a list of state names or a list of state values.")
+  if (length(parents)==0L) torch_tensor(1)
+  return(torch_cartisian_product(lapply(parents,torch_tensor))
 }
+
+
 
 
 ############
@@ -35,23 +33,37 @@ buildeTheta10 <- function(parents) {
 RuleASB <- nn_module(
     classname="RuleASB",
     inherit = nnModule,
-    prescale <- torch_mul,
-    summary <- torch_sum,
-    postscale <- torch_add,
-    initialize = function (parents, nstates, QQ=true, ...) {
+    prescale = torch_mul,
+    summary = torch_sum,
+    postscale = torch_add,
+    aVec = NULL,
+    bVec = NULL,
+    setParents = function(parents) {
       self$eTheta <- buildeTheta10(parents)
-      private$SJK <- c(as.list(self$eTheta$shape()),list(nstates))
-      names(private$SJK) <- c("S","J","K")
-      if (!is.null(private$atype))
+      self$setDim(S=nrow(self$eTheta),J=ncol(self$eTheta))
+    }
+    setDim = function (S=1L,J=1L,K=1L) {
+      if (!missing(S)) private$SJK$S <- S
+      if (!missing(J)) private$SJK$S <- J
+      if (!missing(K)) private$SJK$S <- K
+      if (!is.null(private$atype)) {
+        adim <- pTypeDim(private$atype)
         private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
-      if (!is.null(private$btype))
+        if (!isTRUE(all.equal(adim,pTypeDim(private$atype))))
+           self$aMat <- torch_tensor(defaultParameter(private$atype))
+      }
+      if (!is.null(private$btype)) {
+        bdim <- pTypeDim(private$btype)
         private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
-
+        if (!isTRUE(all.equal(bdim,pTypeDim(private$btype))))
+           self$bMat <- torch_tensor(defaultParameter(private$btype))
+      }
+      invisible(self)
+    },
+    initialize = function (parents, nstates, QQ=true, ...) {
+      private$SJK$K <- nstates
+      self$setParent(parents)
       self$QQ <- QQ
-      if (!is.null(private$atype))
-        self$aMat <- torch_tensor(defaultParameter(private$atype))
-      if (!is.null(private$btype))
-        self$bMat <- torch_tensor(defaultParameter(private$btype))
     },
     forward = function(input) {
       if (!isTRUE(self$QQ)) {
@@ -68,8 +80,8 @@ RuleASB <- nn_module(
     },
     private=list(
         atype=PType("real",c(K,J)),
-        btype=PType("real",c(K,1)),
-        SJK=NULL,
+        btype=PType("real",c(K,1L)),
+        SJK=list(S=1L,J=1L,K=1L),
         cache$NULL
     ),
     active = list(

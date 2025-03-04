@@ -7,20 +7,22 @@ CPT_Link <- nn_module(
       k=NA,
       stype=NULL,
     ),
-    initialize=function(states) {
-      if (is.character(states))
-        private$k <- length(states)
-      else private$k <- states
-      if (!is.null(private$stype)) {
-        private$stype <- setpTypeDim(private$stype,K=private$k)
-        self$linkScale <- torch_tensor(defaultParameter(private$stype))
-      }
+    initialize=function(nstates) {
+      self$K <- nstates
     },
     forward=function(input) {
       self$link(input)
     },
    active=list(
-       K=function(){private$k},
+       K=function(value){
+         if (missing(value)) return (private$k)
+         if (!is.null(private$stype)) {
+           olddim <- pTypeDim(private$stype)
+           private$stype <- setpTypeDim(private$stype,K=private$k)
+           if (!isTRUE(all.equal(olddim, pTypeDim(private$stype))))
+             self$linkScale <- torch_tensor(defaultParameter(private$stype))
+         }
+       },
        sType=function(value) {
           if (missing(value)) return (private$stype)
           if (!is(value,"PType"))
