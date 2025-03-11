@@ -29,7 +29,7 @@ setMethod("projectOp",c("array","array"), function (m1,m2,op="+") {
     ii <- ((i-1) %/% stride %% resdim) +1
     ii1 <- ifelse(dim1==1L,1L,ii)
     ii2 <- ifelse(dim2==1L,1L,ii)
-    res[i] <- exec(op,exec("[",m1,as.list(ii1))
+    res[i] <- exec(op,exec("[",m1,as.list(ii1)),
                       exec("[",m2,as.list(ii2)))
   }
   res

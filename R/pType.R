@@ -113,8 +113,15 @@ defaultParameter.PType <- function(pType) {
 
 checkParam.default <- function(pType,par) {TRUE}
 checkParam.PType <- function(pType,par) {
-  if (!all.equal(pTypeDim(pType),dim(par)))
-    return("Dimension mis-match, or dimensions not set.")
+  ptd <- pTypeDim(pType)
+  if (is.null(ptd))
+    warning("Dimension not yet set, not checked.")
+  else {
+    if (length(ptd) != length(dim(par)) ||
+        any(mapply(\(d1,d2) {d1!=d2 && d2!=1L},ptd,dim(par))))
+      return("Dimension mis-match, expected",ptd, "dimensions,",
+             "got", dim(par),".")
+  }
   NextMethod()
 }
 
@@ -172,9 +179,9 @@ checkParam.pVec <- function(pType,par) {
   NextMethod()
 }
 natpar2Rvec.pVec <- function(pType,natpar) log(pMat2pVec(pType,natpar))
-Rvec2natpar.pVec <- function(pType,Rvec) {pVec2pMat(pType,softmax(Rvec))}
+Rvec2natpar.pVec <- function(pType,Rvec) pVec2pMat(pType,softmax(Rvec))
 natpar2tvec.pVec <- function(pType,natpar) pMat2pVec10(pType,natpar)$log_()
-tvec2natpar.pVec <- function(pType,Rvec) pVec2pMat10(pType,nnf_softmax(Rvec))}
+tvec2natpar.pVec <- function(pType,Rvec) pVec2pMat10(pType,nnf_softmax(Rvec))
 getZero.pVec <- function(pType) {.5}
 
 checkParam.cpMat <- function(pType,par) {
@@ -198,7 +205,7 @@ natpar2tvec.cpMat <- function(pType,natpar) {
   pMat2pVec10(pType,natpar)$log_()
 }
 tvec2natpar.cpMat <- function(pType,Rvec) {
-  pVec2pMat10(pType,torch_cat(lapply(vec2rowlist(pType,Rvec),nnf_softmax))
+  pVec2pMat10(pType,torch_cat(lapply(vec2rowlist(pType,Rvec),nnf_softmax)))
 }
 getZero.cpMat <- function(pType) {1/pTypeDim(pType)[2]}
 

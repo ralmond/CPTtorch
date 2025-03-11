@@ -1,0 +1,687 @@
+---
+title: "Conditional Probability Tensor Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Conditional Probability Tensor Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(CPTtorch)
+```
+
+# Bayesian Networks and Conditional Probability Tables
+
+A Bayesian network [@pearl1988, @ls1988, @bninea] is a way of
+factoring a probability distribution according to an acyclic directed
+graph $\mathcal{G} = \langle \mathcal{V}, \mathcal{E} \rangle$, where
+the variables in the model correspond to nodes in the graph,
+$\mathcal{V}$.  Let $V$ be a node and let $\mathord{pa}(V) = \{
+V_{j}: V_{j} \rightarrow V \in \mathcal{E} \}$.  The set
+$\mathord{pa}(V)$ is called the _parents of $V$_, and $V$ is called the
+_child_.  Then the joint probability distribution over all of the
+variables is:
+
+$$ p(\mathcal{V}) = \prod_{V \in \mathcal{V}} p(V|\mathord{pa}(V)) \ .$$
+
+The terms, $p(V|\mathord{pa}(V))$ are known as _conditional probability
+tables_ (CPT, also conditional probability tensor).  So the work of
+specifying a Bayes net consists of specifying all of the CPTs.
+Learning a Bayesian network from data (given the structure) involves
+finding CPTs the approximate the observed data.
+
+## Dimensions of a CPT
+
+Commonly, only Bayesian networks with discrete variables are
+considered.  In the discrete case the conditional probabilities can be
+represented by tensors, and calculation in the Bayes net are all based
+on the multiplication of tensors.
+
+::: {.callout Note}
+One very useful Bayes net operation is marginalizing out certain
+variables to focus on certain variables of interest.  With discrete
+variables, this involves summation, but with continuous variables it
+requires an integral.  That integral does not have an analytic
+solution except in special cases (for example, all variables are
+normally distributed.)  Note that one approximate solution is to
+replace the continuous variable with a discrete distribution over
+several quadrature points, thus getting back to the discrete network.
+:::
+
+Let $J$ be the number of parents of $V$, and let $M_j$ be the number
+of states the $j$th parent can take on.  Let $K$ be the number of
+states that the child variable can take on.  The the CPT is a
+$M_1 \times \cdots \times M_J \times K$ tensor (also called a
+potential).  In order to be a proper conditional probability
+distribution all values must be non-negative.  Also, the sum over the
+last dimension must be one.
+
+Let $S=\prod_{j\in J} M_j$.  The CPT is often reshaped as a $S \times
+K$ matrix where each column corresponds to the state of a child
+variable and each row corresponds to a possible combination of the
+parent variables.  These are both views of the same underlying tensor.
+The multidimensional potential is more convenient computationally,
+while the matrix version is easier for humans to read.  (See the
+information on conditional probablity frames below).
+
+## Learning CPTs
+
+Suppose there exists data on a number of individuals where the value
+of all the variables are known.  Suppose further that each row of each
+CPT is a Dirichlet distribution which is independent from all of the
+others (other rows in the same table and rows in different tables).
+They call this the _hyper-Dirichlet_ model.  Let $\mathbf{X}_V$ be a
+tensor of the counts of the number of individuals in the sample, where
+each cell corresponds to a particular combination of parent and child
+values.  
+
+In this case, the maximum likelihood estimate for the CPT is just
+$\||\mathbf{X}_V\||$, where each row is divided by its row sum to turn
+it into a unit simplex.  Often a small value is added to each cell to
+avoid pathologies assiciated with small cell counts.
+
+But what if not all variables are observed.  In psychological and
+educational models, the variables representing skills, traits or
+states of the individual are often latent. However, the table of
+counts is a sufficient statistic, and the usual Bayes net scoring
+algorithm [@bninea] can be used to get its expected value.  This
+provides a straightforward EM algorithm:
+
+0. Start with initial values for all CPTs (possible based on experts).
+
+1. Score all of the individuals to get expected count tables (this is
+   the E-step).
+   
+2. Normalize the expected counts to get the new CPTs.  (This is the M-step.)
+
+$\inf$. Loop until the change in parameters is small (or the cows come
+home).
+
+@mengvandyke call this a _structural EM_, and the maximization for
+each CPT is independent (because of the global independence
+assumptions).  M. von davier [@mvondavier] calls this a parallel EM
+algorithm because both the scoring for individuals and the
+maximization step can be done in parallel.
+
+## Why Use Parametric Models
+
+Although the non-parametric hyper-Dirichlet model is mathematically
+convenient, it actually has a whole lot of parameters ($S \times K$),
+which grows exponentially with the number of parents.  The parametric
+models, tend to be linear in the number of parameters and states of
+the child variable.
+
+Second, especially in educational models, the variables are often
+ordinal, and the relationship between the parents and child is thought
+to be monotonic, that is as the parents move into higher states (more
+skill) the probability that the child will be in a high state (strong
+performance) should increase.  Parametric models can enforce the
+monotonicity conditon.
+
+Third, the precision with which each row of the conditional
+probability table is estimated depends on the number of cases in this
+row.  Consider a variable with two parents which are moderately to
+strongly correlated.  Then the number of cases in the rows with the
+first parent high and the second parent low will be small.  Using a
+parametric model smooths the estimates in sparsely populated rows,
+allowing them to borrow strength from more populous rows.
+
+# DiBello Models
+
+The general specification for CPT models used in `CPTtorch` is based
+on a scheme Lou DiBello developed to build the conditional probability
+tables for a prototype assessment called _Biomass_ [@whereNumbers].
+DiBello's scheme was based on item response theory (IRT) which maps a
+latent ability variable, $\theta$ to a probability of getting a
+particular outcome on an item.  DiBello postulated an _effective
+theta_: a direction in the multidimensional proficiency space which
+represents greater chance of getting a particular item right.  This
+direction would be different for each item in the assessment.
+
+The complete method had three steps:
+
+1. Associate each parent state with a point on the $\theta$ scale.
+   DiBello originally used -1, 0, and 1 for variables with states
+   "Low", "Medium" and "High".  @bninea later suggested using equally
+   spaced points of the normal distribution (which is approximately
+   the same for the 3 state case, but answers the question of how to
+   extend the method for more or fewer states).
+   
+   Next, the _parent value matrix_, $\boldsymbol{\Theta}$ is formed.  This is an $S
+   \times J$ matrix where each row correspond to a possible
+   configuration of the parent variables, and each column contains the
+   mapped value of parent $j$.  
+   
+2. _Combine_ the parent parent values to make an effective theta for
+   each row.  Let $\mathbf{a}$ be a column vector of length $J$ giving
+   weights (or discriminations) for the parent variables.  Let
+   $\mathbf{b}$ be a $K'=K-1$ row vector giving the _difficulty_ of
+   optaining a score of 2 or higher and 3 or higher respectively.
+   Then the $S \times K'$ effective theta matrix is:
+   
+   $$\widetilde{\boldsymbol{\Theta}} = \boldsymbol{\Theta}\mathbf{a} -
+   \mathbf{b} \, $$
+   
+   Where we are using the tensor arithmatic convention of broadcasting
+   across dimensions of size one so that subtracting a $1 \times K'$
+   row vector from a $S \times 1$ column vector produces a $S \times
+   K'$ result.  (Note:  it is a tradition in the IRT world to use
+   difficulties, which are negative intercepts, instead of intercepts.
+   This is the reason for subtraction in the above equation.)
+   
+3. Finally, DiBello used the graded response model [@samejima] to turn
+   the effective thetas into probabilities.  First apply the inverse
+   logistic function to all elements of the effective theta matrix.
+   Then the first column contains the conditional probabilities that
+   the child variable is in the 2nd or 3rd state, and the second
+   column is the probability that the child is in the 3rd state.  Note
+   that the probability of being in 1st, 2nd or 3rd states is 1, and
+   the probability of being higher than the 3rd state is 0.  So add a
+   column of 1s before and 0s after.  The conditional probabilities
+   can then be found by differencing the columns.  The result is a $S
+   \times K$ CPT.
+   
+DiBello noted that the combination function could be replaced with
+other functions depending on how the experts thought the parent
+variables would interact to influence the results.  In particular,
+replacing the sum with a minimum would make a conjuctive model where
+the weakest skill would dominate the response, and a maximum would
+make a disjunctive model where the strongest skill would dominate the
+others.  Call the function that projects from the parent theta space
+to the effective theta space the _combination rule_.
+
+Note that there also exist alternative to the graded response function
+in the third step.  As these play a role similar to the link function
+in a generalized linear model [@mccullachnelder], they are called
+_link functions_.
+
+Because each row of the final CPT is a simplex, there are only $K-1$
+free parameters.  There are various was to handle this.  One common
+strategy is to use only $K-1$ columns in the effective theta matrix,
+and then calculate the final column based on the other values.
+Another strategy is to allow $K$ columns in the effective theta
+matrix, but then to normalize each row by dividing by its some.  The
+Gaussian model has the effect theta represent the mean of the
+distribution, so requires only one column in the effective theta
+matrix.  Throughout, $K$ will refer to the number of columns in the
+CPT, and $K'$ the number of columns in the effective theta matrix
+(which is determined by the choice of link function).
+   
+## Model Parameters
+
+The combination rule took two parameters, $A$ and $B$.  Some link
+functions require an additional parameter, $S$.  In `CPTtorch`, each
+of these has a corresponding `PType` object which provides information
+about its expected dimenions, and legal values.
+
+Note that because of broadcasting, the parameter can have a smaller
+size than requested.  For example, in the compensatory rule described
+above, the expected dimension for $A$ is $K' \times J$, allowing for
+potentially a different value of the weights for each state of the
+child variable.  By supplying a $1 \times J$ value instead, this
+ensures that the same parameters are used in calculating each column.
+
+### A:  Discriminations, Slopes or Weights
+
+The $A$ parameter is used to represent coefficients giving the
+relative importance of the various parents.  These are often called
+discriminations in the IRT context, slopes in regression, and weights
+in machine learning.
+
+These are often constrained to be positive and negative values would
+indicated that the variable has negative influence.
+
+### B:  Difficulties, Demands, Intercepts or Offset
+
+The $B$ parameter represents a location shift in either the input or
+output.  In the IRT tradition, this is called the difficulty and is
+subtracted from the effective theta.  Although it serves a similar
+function to an intercept in a regression, or a bias in a machine
+learning model, it has the opposite sign.  
+
+### S:  Link Function Parameters
+
+Certain link functions need an additional parameter.  The Gaussian
+link needs a residual standard devation.  The slipping and guessing
+links need slipping and guessing parameters.  These are known as link
+scale parameters.
+
+## Natural and unconstrained parameters
+
+If the range of a parameter is less than the whole real line, it can
+be transformed into an unconstrained variant for optimization or
+simulation.  For example, if the $A$ parameter is constrained to be
+positive, $\log(A)$ can take any real value.  Thus, each of the three
+parameters has a constrained and unconstrained version.
+
+The natural (constrained) versions are `aMat`, `bMat` and `linkScale`.  The
+unconstrained versions are `aVec`, `bVec` and `sVec`, the latter three
+are `torch::nn_parameter()` objects, so that they are what is used in
+the optimization algorithm.  The unconstrained versions are in the
+natural scale and take the vector shape.  The `aMat`, `bMat` and
+`linkScale` are active fields, so that setting them also sets the
+unconstrained parameter.  When the unconstrained parameters are set
+(often by the optimizer) the corresponding natural version is also
+updated.  The `PType` object controls the method used for converting
+between the two versions.
+
+# Parent Theta Matrix
+
+The first step in creating a parent value matrix is to create for each
+parent variable a mapping between its possible states and the real
+numbers.  As there are a finite number of states, $M_j$, this can take
+the form of a numeric vector whose names correspond to the state
+names:
+
+\code{c(\var{statej1}=\var{valj1}, \var{statej2}=\var{valj2}, ...)}.
+The complete mapping is then a list of such mappings, with names
+corresponding to the parent variable names.
+
+## Normal Quantile Mapping
+
+In DiBello's schema, the effective theta values are put on the scale
+of the IRT latent variable, which by convention is a standard normal
+scale.  So 0 represents the median of the population, and roughly 95%
+of all individuals are between -2 and +2.  [@bninea] suggested using
+quantiles of a normal distribution.  Thus, if there are $M$ possible
+states for the variable, the values would be
+$\Phi^{-1}(\frac{m-.5}{M})$, where $\Phi^{-1}(\cdot)$ is the inverse
+of the cumulative normal distribution.  
+
+The function \code{as_Tvallist} will convert a list of names into the
+corresponding list of theta values.
+
+```{r}
+as_Tvallist(list(var1=c("High","Med","Low"),var2=c("Yes","No")))
+```
+
+Note that the values are set assuming the states are ordered from
+highest to lowest.
+
+This schema has a numberof attractive properties.  (1) It provides a
+natural way to expand the size of the grid as the number of states
+increases.  (2) The values are the midpoints of equally sized
+intervals of the normal distribution.  Thus if multiplied by a uniform
+distribution over the parent variable, they produce an approximately
+uniform distribution over the theta value.  (3) It is the inverse of
+the normal link mapping, and when the 1.7 constant is used with the
+logistic functions, the IRT mappings.  This means that going from
+parent to child looses information because of the discritizaton, but
+is not distorted by using different mappings.
+
+## Expanding The Grid
+
+The list of parent value vectors can be passed to the base R function
+`expand.grid`, or the torch function `torch_cartesian_prod`. 
+
+::: {.callout note}
+In a cute little bit of arbitrary differences, the `expand.grid`
+function varies the first variable fastest, and `torch_cartesian_prod`
+varies the last variable first.  The function `cartesian_prod` behaves
+the torch version, only using R objects.
+:::
+
+:::: {.columns}
+
+::: {.column}
+```{r}
+pnames <- list(var1=c("High","Med","Low"),
+               var2=c("Yes","No"))
+cartesian_prod(pnames)
+```
+:::
+
+::: {.column}
+```{r}
+as_Tvallist(pnames) |>  buildeTheta10()
+```
+:::
+
+::::
+
+## Models with no parents
+
+In any Bayesian network, there is always at least one variable with no
+parents.  As a special case, if there are now parents the parent theta
+matrix is the $1 \times 1$ matrix containing 0.
+
+```{r}
+buildeTheta10(list())
+```
+
+Note that the resulting unconditional probability table will have
+exactly one row.
+
+
+# Combination Rules
+
+The `CombinationRule` is a `nn_module` which projects the $S \times J$
+parent value matrix, $\boldsymbol{\Theta}$, onto the $S \times K'$
+effective theta matrix, $\widetilde{\boldsymbol{\Theta}}$, where $K'$
+is a constant based on the number of states in the child variable and
+the link function.  
+
+The field `rule$pTheta` is the parent value matrix as a
+tensor.  This is treated as a constant, which should only change when
+the topological structure of the network is changed.  This can be done
+with the `rule$setParents()` method.
+
+The `rule$forward()` method (which takes no arguments) calculates the
+effective theta tensor.  It uses the `rule$pTheta` constant, and the
+parameters stored in `rule$aMat` and `rule$bMat` in this calculation.
+
+::: {.callout note}
+Technically, the `$aVec` and `$bVec` versions of the parameter, in the
+unconstrained space, are the instances of the `nn_parameter` object
+and are the targets of the autograd function.  However, usually the
+`$forward()` function is written using the natural `$aMat` and `$bMat`
+parameters, and the transformation from unconstrained to natural
+parameters are part of the forward algorithm.
+:::
+
+
+## Compensatory Rule
+
+The simplest projection rule is a linear transformation.  Let
+$\mathbf{A}$ be a $K' \times J$ matrix of weights, and let $\mathbf{B}$
+be a $K' \times 1$ matrix of offsets.  Then, set 
+
+$$\widetilde{\boldsymbol{\Theta}} = \boldsymbol{\Theta}\mathbf{A}^T/\sqrt{J} -
+   \mathbf{B}^T, $$
+   
+where the subtraction is broadcast across the first dimension.
+(Again, this formula follows the IRT tradition of subtracting the
+difficulty rather than adding an intercept.)
+
+::: {.callout note}
+
+The A and B parameters are stored so that the rows correspond to
+states of the child variable and the columns to parents (as is true
+for the parent value matrix).  Hence the need for the transpositions
+in these equations.
+
+:::
+
+
+The factor of $1/\sqrt{J}$ is a variance stabilization constant.
+Without this constant, when more parents are added the variance of the
+effective thetas will increase as the number of parents increases.  If
+the variance of each column of $\boldsymbol{\theta}$ is one, and all
+of the elements of $\mathbf{A}$ are 1, then the variance of the
+effective theta will be $J$; dividing by the square root of $J$ means
+that the relevant columns of $\mathbf{A}$ can be reused if a parent
+variable is added or deleted.
+
+To illustrate how the algorithm works, use integer values for the
+parent values.
+
+```{r}
+parentVals <- list(S1=c(H=1,M=0,L=-1),S2=c(Master=1,Non=0))
+child=c("Full","Partial","No")
+buildeTheta10(parentVals)
+```
+
+This first example uses the `CompensatoryRule1` which uses the same
+discriminations for all columns.
+
+```{r}
+compEx1 <- CPT_Model$new("Compensatory1",)
+
+
+## Generalized Matrix Multiplication (ASB Rules)
+
+The `CombinationRule` object has three fields whose values are torch
+functions that control the algorithm
+
+
+`rule$aop`
+: The operator used to combine A into the result, ⓐ.  This is
+  multiplication in the compensatory rule above.
+
+`rule$bop`
+: The operator used to combine B into the result, ⓑ.  This is
+  subtraction in the compensatory rule above.
+  
+`rule$summary`
+: The operator used to colapse over the $J$ (parent) dimension,
+  $\oplus$.  This is summation in the compensatory rule above.
+
+The forward algorithm can now be rewritten as:
+
+$$\tilde{\theta}_{s,k} = \bigoplus_{j=1,\dots,J} (\Theta_{s,j}
+	\mathbin{ⓐ} a_{k,j}) \mathbin{ⓑ} b_{1,k}\. $$
+	
+This is known as the ASB variant of the forward algorithm.  (`RuleASB`
+is an abstract class for rules which use this variant.)  Usually for
+this type of rule, A has dimensions $K' \times J$ (or $1 \times J$)
+and B has dimensions $K' \times 1$.
+
+Rewriting matrix multiplication in terms of abstract operators gives a
+great deal of flexibility in writing rules.  The linear combination
+rule is called "Compensatory" because if the parent variables
+represent skills, having more of Skill 1 can (partially) compensate
+for having less of Skill 2.  This is a useful design pattern for
+certain types of items.  However, there are two other useful patterns.
+In a "Conjunctive" model, all skills are necessary, so the weakest
+skill will determine the chance of success.  This can be implemented
+using minimization as the summary operator.  
+In a "Disjunctive" model, any one of the skills can be used to solve
+the problem, so the strongest skill will determine the chance of
+success.  This can be implemented using maximization as the summary
+operator.   
+
+## BSA Rules
+
+In the IRT context, the bias parameter (with the negative sign) is
+called _difficulty_ as the higher the difficulty, the higher the
+effective theta needs to be to have a good chance of success.  Now
+consider a typical math word or story problem.  A conjuctive model seems
+appropriate as both language skill and mathematical skill are needed
+to solve it.  However, the language is usually straightforward, so
+only a small amount of language skill is needed, but the math skill
+could be arbitrarily complex.  It therefore makes sense to reverse the
+order of the operations, and let the B matrix have dimensions $K'
+\times J$, so there is a different difficulty for each parent.  To
+reduce the number of parameters, the A matrix is given dimensions $K'
+\times 1$.  
+
+The BSA algorithm (implemented in the `RuleBSA` abstract class) is:
+
+$$\tilde{\theta}_{s,k} = \bigoplus_{j=1,\ldots,J} (\Theta_{s,j} \mathbin{ⓑ}
+b_{j,k}) \mathbin{ⓐ} a_{1,k}\ .$$
+
+The `ConjunctiveRule` and `DisjunctiveRule` are instances of this kind
+of rule.  Here the `$aop` is multiplication, the `$bop` is
+subtraction, and the `$summary` operation is minimum for the
+conjuctive rule and maximum for the disjunctive.
+
+## BAS Rules
+
+An entirely different schema for producing CPTs from a small number of
+parameters is the _noisy-and_ and _noisy-or_ models [@pearl].  These
+models were initially developed using binary networks.  So an
+"and-gate" model would be true if and only if all of the inputs are
+true.  Let $a_j$ be the probability that the child variable is true
+when Parent $j$ is false and the others are true.  Given the
+assumption that these bypass probabilities are independent, the
+probabity of a true response is $\prod_j a_j^{1-X_{s,j}}$, were
+here $X_{s,j}$ is 1 if the parent is true and zero if it is
+false.  This is the noisy-and.  In a noisy-or model, the $a_j$
+represents the probability that the outcome is false even if the
+corresponding parent is true.  The output probability is $1-\prod
+a_j^{1-X_{s,j}}$. 
+
+The condition that all of the parents are binary can be relaxed by
+setting $X_{s,j,k} = (\theta_{s,j} > b_{k,j})$; is the parent above a
+threshold which coud be different for each column of the output
+tensor.  Both the B and A transformations are applied be for the
+summary operator, yeilding a BAS algorithm (and the `RuleBAS`).  
+
+$$\tilde{\theta}_{s,k} = \bigoplus_{j=1,\ldots,J} ((\Theta_{s,j}
+\mathbin{ⓑ} b_{k,j}) \mathbin{ⓐ} a_{k,j})\ .$$
+
+For the `NoisyAndRule`, the B operator is greater than, the A operator
+is the exponential operator with the arguments reversed, the summary
+operator is the product.  For the `NoisyOrRule`, the greater than is
+replaced with less than or equal and the product with 1 minus the product.
+
+A leak parameter is often added to the  noisy-and and noisy-or rules.
+This is added through the link function.
+
+Finally, this is not quite the noisy-min, noisy-max of @diez.  That
+model uses a $M_j \times K'$ matrix for each parent variable, so it
+doesn't quite fit into this framework.
+
+## Constant Rules
+
+There are couple of cases that just don't fit with the other patterns.
+In particular, for a hyper-Dirichlet distribution it makes senses to
+just directly provide the parameters (the counts or pseudo-counts).
+So the `$forward()` method just returns the parameter.  This is especially
+true for the case with no parents, as the parent theta matrix is
+trivial. The `RuleConstA` and
+`RuleConstB` rules take care of this case.
+
+The `CenterRule` directly gives an effective theta value for each
+parent variable.  It is especially useful with the Gaussian link where
+only a single column (the mean) is needed in the effective theta
+The `DirichletRule` provides an unnormalized conditional probability
+table (e.g., a hyper-Dirichlet parameter).  With a single parent, this
+allows directly specifying the parent value.
+
+
+## A Table of Available Rules
+
+The `CPTtorch` package maintains a table of registered rules, which
+include all of the rules built into the package.  The function
+`getRule(name)` returns the rule object for a given name (usually, the
+actual rule module is bound to the symbol `nameRule`.  The function
+`availableRules()` returns a list of all registered rules, and the
+function `setRules(name,rule)` adds user-defined rules to the
+collection.
+
+In the following table, the "Rule" column gives the name of the rule,
+the "Algorithm" column describes the order of operations for the
+`$forward()` method, and the "Summary" column describes the summary
+operator. There are two rows describing the A and B operators, in
+these rows the "Op" is the operator used to combine that parameter,
+the "pType" gives the legal values for the parameter, and "Dim"
+provides the expected shape.  Note that `K` represents $K'$, the
+expected theta width passed by the link function.
+
+
+| Rule | Algorithm | Summary | AB | Op | pType | Dim |
+| ---- | --------- | ------- | -- | -- | ----- | --- |
+| Compensatory | ASB | sumrootj | A | mul | pos | c(K,J) |
+|              |     |          | B | sub | real | c(K,1) |
+| Compensatory1 | ASB | sumrootj | A | mul | pos | c(1,J) |
+|               |     |          | B | sub | real | c(K,1) |
+| Conjunctive | BSA | min | B | sub | real | c(K,J) |
+|             |     |    | A | mul | pos | c(K,1) |
+| Disjunctive | BSA | max | B | sub | real | c(K,J) |
+|             |     |    | A | mul | pos | c(K,1) |
+| NoisyAnd | BAS | prod | B | gt | real | c(K,J) |
+|          |     |      | A | mul | pos | c(K,J) |
+| NoisyOr | BAS | 1-prod | B | gt | real | c(K,J) |
+|         |     |      | A | mul | pos | c(K,J) |
+| Center | ConstB | N/A  | B | N/A  | real | c(S,1) |
+| Dirichlet | ConstB | N/A  | B | N/A  | pos | c(S,K) |
+
+## Writing new Combination Rules
+
+
+
+# Link Functions
+
+## Potential to simplex converstion
+
+## Differences in cut scores (Graded Response)
+
+## Step Probabilities (Partial Credit)
+
+## Discrete IRT Models
+
+## Gaussian Link
+
+## Guessing and Slipping
+
+## Table of Link Functions
+
+    Name | Link function | D | Scale Parameter | Type | etWidth |
+    Potential | simplexify | | -- | -- | K |
+    StepProds | cumprod | | -- | -- | K-1 |
+    Difference | diff | | | | K-1 |
+    Softmax | softmax | 1.7 | | | K |
+    PartialCredit | partialCredit | 1.7 | | | K-1 |
+    GradedResponse | graded Response | 1.7 | | | K-1 |
+    Gaussian | probit | | residual std | pos dim=c(1) | 1 |
+    Slip | diff `%*%` slipmat | | slipping | unit dim=c(1) | K-1 |
+    Guess | diff `%*%` guessmat | | guessing | unit dim=c(1) | K-1 |
+    GuessSlip | `%*%` guessmat | | guessing | unit dim=c(2) | K-1 |
+    | `%*%` slipmat | | slipping | | |
+
+
+## Building New Link Functions
+
+# CPT Models
+
+## Rules and Links
+
+## Parents Revisited
+
+## Forward Method
+
+## Conditional Probability and Effective Theta Frames
+
+## Log likelihood of data
+
+## Optimization
+
+# Some commonly used Patterns
+
+## Compensatory IRT Models
+
+## Discrete Regression Models
+
+## Conjunctive and Disjunctive IRT Models
+
+## Noisy-or and Noisy-and Models
+
+## Hyper-Dirichilet Models
+
+# Inner $Q-Matrixes
+
+  $$\tilde{\theta}_{s,k} = \bigoplus_{j: qq_{k,j}} (\Theta_{s,j}
+  \mathbin{ⓐ} a_{j,k})  \mathbin{ⓑ} b_{1,k}\ .$$
+
+
+  $$\tilde{\theta}_{s,k} = \bigoplus_{j: qq_{k,j}} (\Theta_{s,j} \mathbin{ⓑ}
+  b_{j,k}) \mathbin{ⓐ} a_{1,k}\ .$$
+
+
+  $$\tilde{\theta}_{s,k} = \bigoplus_{j:qq_{k,j}} ((\Theta_{s,j}
+  \mathbin{ⓑ} b_{k,j}) \mathbin{ⓐ} a_{k,j})\ .$$
+
+
+
+## Inner $Q-Matrixes and Transformed Parameters
+
+# Efficiency Concerns
+
+## Just-in-time tracing
+
+## Working on the GPU versus CPU
+
+
+# References
+
+
+# Parameter Descriptions

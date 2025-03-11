@@ -1,31 +1,11 @@
-massageParents <- function (parents) {
-  if (length(parents) > 0L && length(names(parents)) > 0L) {
-    names(parents) <- paste0("P",1L:length(parents))
-  if (is.numeric(parents)) {
-    parents <- lapply(parents,\(p) paste0("S",1L:p))
-  }
-  parents <- lapply(parents, \(p) {
-    if (is.character(p)) {
-      pp <- effectiveTheta(length(p))
-      names(pp) <- p
-      pp
-    } else {
-      if (length(names(p)) == 0L) {
-        names(p) <- paste0("S",1L:length(p))
-      }
-      p
-    }
-    parents
-}
 
-
-CPT <- nn_module(
-    classname="CPT",
-    inherit=nnModule,
+CPT_Model <- nn_module(
+    classname="CPT_Model",
+#    inherit=nn_Module,
     rule=NULL,
     link=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
-                          QQ=true) {
+                          QQ=TRUE) {
       self$parentVals <- parents
       self$stateNames <- states
       link <- getLink(linktype)
@@ -38,7 +18,7 @@ CPT <- nn_module(
                             self$link$etWidth(),
                             QQ)
     },
-    forward = function (input) {
+    forward = function () {
       private$cpt <- self$link$forward(self$rule$forward())
       private$cpt
     },
@@ -51,23 +31,23 @@ CPT <- nn_module(
     },
     getCPF = function () {
       if (is.null(private$cpt)) self$forward(NULL)
-      frame <- data.frame(expand.grid(self$parentNames),as_array(private$cpt))
+      frame <- data.frame(cartesian_prod(self$parentNames),as_array(private$cpt))
       names(frame) <- c(names(self$parentNames),self$stateNames)
       frame
     },
     getETframe = function () {
       if (is.null(private$rule)) return(NULL)
       et <- self$rule$et
-      frame <- data.frame(expand.grid(self$parentNames),as_array(private$cpt))
+      frame <- data.frame(cartesian_prod(self$parentNames),as_array(private$cpt))
       names(frame) <- c(names(self$parentNames),self$stateNames[1L:ncol(et)])
       frame
     },
     private=list(
         parents=list(),
         states=character(),
-        shape=c(1L,1L)
-        cpt=NULL,
-        ),
+        shape=c(1L,1L),
+        cpt=NULL
+    ),
     active=list(
         aMat = function (value) {
           if (missing(value)) return(self$rule$aMat)
@@ -89,7 +69,7 @@ CPT <- nn_module(
         },
         parentVals = function (value) {
           if (missing(value)) private$parents
-          private$parents <- massageParents(value)
+          private$parents <- as_Tvallist(value)
           private$shape <- c(sapply(private$parents,length),
                              private$shape[length(private$shape)])
           if (!is.null(self$rule)) self$rule$setParents(private$parents)
@@ -98,7 +78,7 @@ CPT <- nn_module(
         },
         parentNames = function () {
           lapply(private$parents,names)
-        }
+        },
         stateNames = function (value) {
           if (missing(value)) private$states
           private$states <- value
@@ -110,7 +90,7 @@ CPT <- nn_module(
           }
           private$cpt <- NULL
           invisible(self)
-        }
+        },
         QQ = function (value) {
           if (is.null(self$rule)) return(NULL)
           if (missing(value)) return(self$rule$QQ)

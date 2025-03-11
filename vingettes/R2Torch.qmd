@@ -1,0 +1,125 @@
+---
+title: "Mapping between R functions and Torch Functions :: Cheat Sheet"
+description: " "
+execute:
+  eval: true
+  output: false
+  warning: false
+---
+
+```{r}
+#| output: asis
+#| echo: false
+#| column: margin
+
+source("common.R")
+use_cheatsheet_logo(
+  "Peanut", 
+  alt = "Hex logo for Peanut - A peanut with a small three node network."
+)
+
+sheet_name <- tools::file_path_sans_ext(knitr::current_input())
+pdf_preview_link(sheet_name)
+translation_list(sheet_name)
+```
+
+<!-- Page 1 -->
+
+## Torch basics
+
+Most torch functions come in three varieties, `torch_fun(ten,...)`, 
+`ten$fun(...)` and `ten$fun_(...)`.  The first two are substantially the same.  The third destructively modifies the `ten` argument.
+
+## Tensor Creation
+
+
+
+## Unary Operators
+
+* `"!"` -- `r  args(torch_logical_not)`
+* `"-"` -- `r args(torch_neg)`
+*  `abs` -- `r args(torch_abs)`
+*  `acos` -- `r args(torch_acos)`
+*  `acosh` -- `r args(torch_acosh)`
+*  `asin` -- `r args(torch_asin)`
+*  `asinh` -- `r args(torch_asinh)`
+*  `atan` -- `r args(torch_atan)`
+*  `atanh` -- `r args(torch_atanh)`
+*  `ceil` -- `r args(torch_ceil)`
+*  `cos` -- `r args(torch_cos)`
+*  `cosh` -- `r args(torch_cosh)`
+*  `exp` -- `r args(torch_exp)`
+*  `expm1` -- `r args(torch_exp)`
+*  `floor` -- `r args(torch_floor)`
+*  `frac` -- `r args(torch_frac)`
+*  `log10` -- `r args(torch_log10)`
+*  `log2` -- `r args(torch_log10)`
+*  `log` -- `r args(torch_log)`
+*  `log1p` -- `r args(torch_log)`
+*  `round` -- `r args(torch_round)`
+*  `sign` -- `r args(torch_sign)`
+*  `sin` -- `r args(torch_sin)`
+*  `sinh` -- `r args(torch_sinh)`
+*  `sqrt` -- `r args(torch_sqrt)`
+*  `square` -- `r args(torch_square)`
+
+
+
+*  `logit` -- `r args(torch_logit)`
+*  `invlogit` -- `r args(torch_sigmoid)`
+*  `linvlogit` -- `r args(nnf_log_sigmoid)`
+*  `reciprocal` -- `r args(torch_reciprocal)`
+*  `erf` -- `r args(torch_erf)`
+*  `erfc` -- `r args(torch_erfc)`
+*  `erfinv` -- `r args(torch_erfinv)`
+*  `rsqrt` -- `r args(torch_rsqrt)`
+
+
+## Binary Operators
+
+Unlike R functions, torch functions will broadcast:  replicate the
+tensor along dimensions of size 1.  So if A is a $N \times M$ tensor
+and B is a $1 \times M$ tensor, `A$add(B)` is equivalent to
+`sweep(A,2,B,"+")`.
+
+    "!="= torch_ne,
+    "%%"= torch_fmod,
+    "&"= torch_logical_and,
+    "*"= torch_mul,
+    "+"= torch_add,
+    "-"= torch_sub,
+    "/"= torch_div,
+    "<"= torch_lt,
+    "<="= torch_le,
+    "=="= torch_eq,
+    ">"= torch_gt,
+    ">="= torch_ge,
+    "^"= torch_pow,
+    "atan2"= torch_atan2,
+    "xor"= torch_logical_xor,
+    "|"= torch_logical_or,
+    floor_divide= torch_floor_divide,
+    pmax= torch_max,
+    pmin= torch_min
+
+## Summary Operators
+
+    max = torch_amax,
+    mean= torch_mean,
+    median= torch_median,
+    min = torch_amin,
+    prod= torch_prod,
+    std= torch_std,
+    sum= torch_sum,
+    var= torch_var,
+
+    logsumexp= torch_logsumexp,
+    nansum= torch_nansum,
+    std_mean= torch_std_mean,
+    var_mean= torch_var_mean
+
+
+## Vector Operations
+
+## Matrix Operations
+

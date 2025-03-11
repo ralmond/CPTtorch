@@ -1,6 +1,9 @@
 #####################################################
 ## Primitive Link functions
 
+as_torch_tensor <- function (x) {UseMethod("as_torch_tensor")}
+as_torch_tensor.numeric <- function(x) torch_tensor(x)
+as_torch_tensor.torch_tensor <- function(x) x
 
 
 logit <- function (p) log(p/(1-p))
@@ -9,13 +12,13 @@ invlogit <- function (x) 1/(1+exp(-x))
 #torch_sigmoid
 linvlogit <- function (x) log(1/(1+exp(-x)))
 probit <- function (p) qnorm(p)
-invprobit <- function (x) dnorm(x)
+invprobit <- function (x) qnorm(x)
 
 logsumexp <- function (x) log(sum(exp(x)))
 
-torch_2simplex(x,dim=2) {
+torch_2simplex <- function (x,dim=-1L) {
   cpt <- x$abs_()
-  cpt$div_(torch_sum(cpt,dim))
+  cpt$div_(torch_sum(cpt,dim,TRUE))
 }
 
 
@@ -46,7 +49,7 @@ torch_ecusum <- function (vv) torch_cat(vv[1],torch_exp(vv[2:-1]))$cumsum_()
 lldiff <- function (v) log(c(v[1],diff(v)))
 torch_ldiff <- function(v) torch_cat(v[1],torch_diff(v))$log_()
 eecusum <- function (vv) cumsum(exp(vv))
-torch_ecusum <- function (vv) torch_exp(vv)$cumsum_()
+torch_eecusum <- function (vv) torch_exp(vv)$cumsum_()
 
 
 stickbreak <- function (p) {
@@ -74,25 +77,25 @@ torch_invstickbreak <- function (q) {
 }
 
 torchOpMap <- list(
-    "+"=torch_add,
-    "atan2"=torch_atan2,
-    "&"=torch_logical_and,
-    "|"=torch_logical_or,
-    "xor"=torch_logical_xor,
-    "/"=          torch_div,
-    "=="=           torch_eq,
-    max=          torch_max,
-    min=         torch_min,
-    floor_divide=      torch_floor_divide,
-    "%%"=              torch_fmod,
-    ">="=                torch_ge,
-    ">"=                torch_gt,
-    "<="=                torch_le,
-    "<"=                torch_lt,
-    "*"=               torch_mul,
-    "!="=                torch_ne,
-    "-"=               torch_sub,
-    "^"=               torch_pow
+    "!="= torch_ne,
+    "%%"= torch_fmod,
+    "&"= torch_logical_and,
+    "*"= torch_mul,
+    "+"= torch_add,
+    "-"= torch_sub,
+    "/"= torch_div,
+    "<"= torch_lt,
+    "<="= torch_le,
+    "=="= torch_eq,
+    ">"= torch_gt,
+    ">="= torch_ge,
+    "^"= torch_pow,
+    "atan2"= torch_atan2,
+    "xor"= torch_logical_xor,
+    "|"= torch_logical_or,
+    floor_divide= torch_floor_divide,
+    pmax= torch_max,
+    pmin= torch_min
 )
 
 getTorchOp <- function (op) {
@@ -102,34 +105,27 @@ getTorchOp <- function (op) {
   torchOpMap[[opname]]
 }
 
-sumrootk <- function(x)
+sumrootj <- function(x)
   sum(x)/sqrt(length(x))
-torch_sumrootk <- jit_trace(\(x,dim)
-                            torch_sum(x,dim)$div(sqrt(prod(x$shape[dim]))),
-                            1:5)
+torch_sumrootj <- function(x,dim=-1,keepdim=FALSE,out=NULL)
+  torch_sum(x,dim,keepdim,out)$div_(sqrt(prod(x$shape[dim])))
+
 
 prodq <- function(x)
   1 - prod(1-x)
-torch_prodq <- jit_trace(\(x,dim) {
-  qqq <- torch_prod(torch_ones_like(x)$sub(x),dim)
+torch_prodq <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
+  qqq <- torch_prod(torch_ones_like(x)$sub_(x),dim,keepdim,out)
   torch_ones_like(qqq)$sub(qqq)
-})
+}
+
+prod_1 <- function(x)
+  1 - prod(x)
+torch_prod_1 <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
+  torch_prod(x,dim,keepdim,out)$neg_()$add_(torch_tensor(1))
+}
 
 
 torchSummaryMap <- list(
-    "max"=torch_amax,
-    "min"=torch_amin,
-    logsumexp=         torch_logsumexp,
-    median=   torch_median,
-    mean=               torch_mean,
-    nansum=            torch_nansum,
-    prod=              torch_prod,
-    std=               torch_std,
-    std_mean=          torch_std_mean,
-    sum=               torch_sum,
-    var=               torch_var,
-    var_mean=          torch_var_mean,
-    
 )
 
 getTorchSummaryOp <- function (op) {
@@ -176,40 +172,39 @@ torch_qnorm <- jit_trace(cpt_qnorm,torch_tensor(c(.25,.5,.75)))
 
 
 torchUnaryMap <- list(
-    abs=torch_abs,
-    acos=torch_acos,
-    acosh=torch_acosh
-    asin=         torch_asin,
-    asinh=        torch_asinh,
-    atan=         torch_atan,
-    atanh=             torch_atanh,
-    ceil=              torch_ceil,
-    cos=               torch_cos,
-    cosh=              torch_cosh,
-    erf=               torch_erf,
-    erfc=              torch_erfc,
-    erfinv=            torch_erfinv,
-    exp=               torch_exp,
-    floor=             torch_floor,
-    frac=              torch_frac,
-    log=               torch_log,
-    log10=             torch_log10,
-    "!"=       torch_logical_not,
-    logit=             torch_logit,
-    "-"=               torch_neg,
-    reciprocal=        torch_reciprocal,
-    round=             torch_round,
-    rsqrt=             torch_rsqrt,
-    sign=              torch_sign,
-    sin=               torch_sin,
-    sinh=              torch_sinh,
-    sqrt=              torch_sqrt,
-    square=            torch_square,
+    "!"= torch_logical_not,
+    "-"= torch_neg,
+    abs= torch_abs,
+    acos= torch_acos,
+    acosh= torch_acosh,
+    asin= torch_asin,
+    asinh= torch_asinh,
+    atan= torch_atan,
+    atanh= torch_atanh,
+    ceil= torch_ceil,
+    cos= torch_cos,
+    cosh= torch_cosh,
+    erf= torch_erf,
+    erfc= torch_erfc,
+    erfinv= torch_erfinv,
+    exp= torch_exp,
+    floor= torch_floor,
+    frac= torch_frac,
     invlogit= torch_sigmoid,
+    invprobit= torch_pnorm
     linvlogit=nn_log_sigmoid,
-    probit=torch_qnorm,
-    invprobit=torchpnorm,
-    
+    log10= torch_log10,
+    log= torch_log,
+    logit= torch_logit,
+    probit= torch_qnorm,
+    reciprocal= torch_reciprocal,
+    round= torch_round,
+    rsqrt= torch_rsqrt,
+    sign= torch_sign,
+    sin= torch_sin,
+    sinh= torch_sinh,
+    sqrt= torch_sqrt,
+    square= torch_square
 )
 
 getTorchUnaryOp <- function (opname) {
@@ -220,18 +215,16 @@ getTorchUnaryOp <- function (opname) {
 
 
 torchVectorMap <- list(
-    cummax=            torch_cummax,
-    cummin=            torch_cummin,
-    cumprod=           torch_cumprod,
-    cumsum=            torch_cumsum,
-    diff=              torch_diff,
-    renorm=            torch_renorm,
-    t=                 torch_t,
-    "%*%"=            torch_matmul,
-    softmax=		nnf_softmax,
-    invlogit=              nnf_sigmoid,
-    lsoftmax=		nnf_log_softmax,
-    linvlogit=              nnf_logsigmoid,
+    cummax= torch_cummax,
+    cummin= torch_cummin,
+    cumprod= torch_cumprod,
+    cumsum= torch_cumsum,
+    diff= torch_diff,
+    renorm= torch_renorm,
+    t= torch_t,
+    "%*%"= torch_matmul,
+    softmax= nnf_softmax,
+    lsoftmax= nnf_log_softmax,
 )
 
 getTorchVectorOp <- function (opname) {
@@ -240,26 +233,6 @@ getTorchVectorOp <- function (opname) {
   torchVectorMap[[opname]]
 }
 
-
-
-guessmat <- function(n,g) {
-  mat <- matrix(0,n,n)
-  for(nn in 1:(n-1)) 
-    mgcv::sdiag(mat,nn) <- g^nn
-  diag(mat) <- 1-rowSums(mat)
-  mat
-}
-
-torch_guessmat <- function(n,g) {
-  mat <- torch_diagonal(
-
-slipmat <- function(n,s) {
-  mat <- matrix(0,n,n)
-  for(nn in 1:(n-1)) 
-    mgcv::sdiag(mat,-nn) <- s^nn
-  diag(mat) <- 1-rowSums(mat)
-  mat
-}
 
 
 
