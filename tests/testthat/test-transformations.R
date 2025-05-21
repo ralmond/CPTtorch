@@ -30,3 +30,31 @@ test_that("stickbreak",{
   lpv <- c(1.5,.5)
   expect_equal(stickbreak(invstickbreak(lpv)),lpv)
 })
+
+test_that("logsumexp",{
+  expect_equal(logsumexp(c(0,0)),log(2))
+})
+
+test_that("simplexify",{
+  t1 <- torch_tensor(1.0:3.0,torch_double())
+  t1norm <- as.numeric(torch_simplexify(t1))
+  expect_equal(t1norm,(1:3)/6)
+  t1[1] <- -1
+  t1norm <- as.numeric(torch_simplexify_(t1))
+  expect_equal(t1norm,(1:3)/6)
+  expect_equal(as.numeric(t1),(1:3)/6)
+
+})
+
+test_that("prodq",{
+  expect_equal(prodq(c(.9,.75)),.975)
+  expect_equal(as.numeric(torch_prodq(torch_tensor(c(.9,.75)))),.975,
+               tolerance=.00001)
+
+})
+
+# sumrootk
+# torch_pnorm, qnorm
+# guessmat
+# slipmat
+

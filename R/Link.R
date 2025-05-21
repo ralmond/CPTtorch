@@ -1,21 +1,43 @@
-CPT_Link <- nn_module(
+CPT_Link <- torch::nn_module(
     classname="CPT_Link",
     link=identity,
     sVec=NULL,
+    slipP=NULL,
+    guessP=NULL,
     etWidth=function() {self$K-1},
-    reversed=FALSE
+    high2low=FALSE,
     private=list(
       k=NA,
       stype=NULL
     ),
-    initialize=function(nstates) {
+    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...) {
       self$K <- nstates
+      self$guess <- guess
+      self$slip <- slip
+      self$high2low <- high2low
+    },
+    leakmat=function() {
+      if (is.null(self$guessP) && is.null(self$slipP)) return (NULL)
+      result <- torch_eye(self$K)
+      if (!is.null(self$guessP))
+        result <- result$matmul_(torch_guessmat(self$K,self$guess))
+      if (!is.null(self$slipP))
+        result <- result$matmul_(torch_slipmat(self$K,self$slip))
+      result
     },
     forward=function(et) {
-      if (self$reversed) 
-        self$link(et)$fliplr_()
-      else
-        self$link(et)
+      cpt <- self$link(et)
+
+      leakmat <- self$leakmat()
+      if (is.null(leakmat)) {
+        cpt <- cpt$matmul_(leakmat)
+      }
+
+      if (isTRUE(self$high2low))
+        cpt <- cpt$fliplr_()
+
+      cpt
+
     },
    active=list(
        K=function(value){
@@ -51,7 +73,31 @@ CPT_Link <- nn_module(
           self$sVec <- nn_parameter(pMat2tvec10(private$sType,
                                                 as_torch_tensor(value)))
           invisible(self)
-        }
+       },
+       guess=function(value) {
+         if (missing(value))
+           if (is.null(self$guessP)) return(NA)
+           else return (torch_sigmoid(self$guessP)$div_(2))
+         if (is.na(value) || is.null(value) || isFALSE(value))
+           self$guessP <- NULL
+         else {
+           if (as_array(value) < 0 || as_array(value)>.5)
+             abort("Guessing paramter must be between 0 and .5.")
+           self$guessP <- nn_parameter(as_torch_tensor(value)$mul_(2)$logit_())
+         }
+       },
+       slip=function(value) {
+         if (missing(value))
+           if (is.null(self$slipP)) return(NA)
+           else return (torch_sigmoid(self$slipP)$div_(2))
+         if (is.na(value) || is.null(value) || isFALSE(value))
+           self$slipP <- NULL
+         else {
+           if (as_array(value) < 0 || as_array(value)>.5)
+             abort("Slipping paramter must be between 0 and .5.")
+           self$slipP <- nn_parameter(as_torch_tensor(value)$mul_(2)$logit_())
+         }
+       }
     )
 )
 
@@ -59,6 +105,7 @@ CPT_Link <- nn_module(
 
 LinkedList <- new.env()
 getLink <- function (linkname) {
+  if (is(linkname,"CPT_Link")) return(linkname)
   LinkedList(linkname)
 }
 setLink <- function (linkname,value) {
@@ -87,7 +134,7 @@ availableLinks <- function() {
 
 ### It returns a conditional probability table.
 
-PotentialLink <- nn_module(
+PotentialLink <- torch::nn_module(
     classname="PotentialLink",
     inherit=CPT_Link,
     scale=NULL,
@@ -100,38 +147,38 @@ PotentialLink <- nn_module(
     )
 )
 
-StepProbsLink <- nn_module(
+StepProbsLink <- torch::nn_module(
     classname="StepProbsLink",
     inherit=CPT_Link,
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
-      torch_simplexify(
+      torch_simplexify_(
           torch_hstack(list(et,torch_ones(ncol(et),1)))$
-          fliplr_()$cumprod_(2)$fliplr_())
+          cumprod_(2))
     },
     private=list(
       stype=NULL
     )
 )
 
-cuts2simplex <- function (et) 
+cuts2simplex <- function (et)
   torch_hstack(list(torch_zeros(ncol(et),1),et,torch_ones(ncol(et),1)))$
     cummax_(2)$diff_()$clip_(0,1)
 
 
-DifferenceLink <- nn_module(
+DifferenceLink <- torch::nn_module(
     classname="DifferenceLink",
     inherit=CPT_Link,
     scale=NULL,
-    link=cuts2simplex
+    link=cuts2simplex,
     etWidth=function() {self$K-1},
     private=list(
       stype=NULL
     )
 )
 
-SoftmaxLink <- nn_module(
+SoftmaxLink <- torch::nn_module(
     classname="SoftmaxLink",
     inherit=CPT_Link,
     scale=NULL,
@@ -146,7 +193,7 @@ SoftmaxLink <- nn_module(
 )
 
 
-GradedResponseLink <- nn_module(
+GradedResponseLink <- torch::nn_module(
     classname="GradedResponseLink",
     inherit=DifferenceLink,
     D=torch_tensor(1.7),
@@ -162,7 +209,7 @@ GradedResponseLink <- nn_module(
     )
 )
 
-PartialCreditLink <- nn_module(
+PartialCreditLink <- torch::nn_module(
     classname="PartialCreditLink",
     inherit=StepProbsLink,
     scale=NULL,
@@ -170,8 +217,7 @@ PartialCreditLink <- nn_module(
     link=function(et) {
       torch_simplexify(
           torch_hstack(list(et,torch_zeroes(ncol(et),1)))$
-          fliplr_()$cumsum_(2)$fliplr_()$
-          mul_(self$D)$nnf_sigmoid())
+          cumsum_(2)$mul_(self$D)$nnf_sigmoid())
     },
     private=list(
       stype=NULL
@@ -180,7 +226,7 @@ PartialCreditLink <- nn_module(
 
 
 
-GaussianLink <- nn_module(
+GaussianLink <- torch::nn_module(
     classname="GaussianLink",
     inherit=CPT_Link,
     scale=NULL,
@@ -197,7 +243,7 @@ GaussianLink <- nn_module(
     active=list(
         Cuts = function() {
           if (is.null(private$cuts)) {
-            private$cuts <-torch_tensor(matrix(qnorm(((self$k-1L):1L)/self$k),
+            private$cuts <-torch_tensor(matrix(qnorm((1L:(self$k-1L))/self$k),
                                                1L,self$k))
           }
           private$cuts
@@ -222,7 +268,7 @@ GaussianLink <- nn_module(
 addcolk <- function (et)
   torch_hstack(et,torch_sum(et,2)$neg_()$add_(1))
 
-SlipLink <- nn_module(
+SlipLink <- torch::nn_module(
     classname="SlipLink",
     inherit=CPT_Link,
     scale=NULL,
@@ -235,36 +281,6 @@ SlipLink <- nn_module(
     )
 )
 
-GuessLink <- nn_module(
-    classname="GuessLink",
-    inherit=CPT_Link,
-    scale=NULL,
-    etWidth=function() {K-1},
-    link=function(et) {
-      cuts2simplex(et)$matmul_(torch_guessmat(self$K,self$linkScale))
-    },
-    private=list(
-        stype=PType("unit",c(1))
-    )
-)
-
-GuessSlipLink <- nn_module(
-    classname="GuessSlipLink",
-    inherit=CPT_Link,
-    scale=NULL,
-    etWidth=function() {K-1},
-    link=function(et) {
-      cuts2simplex(et)$
-        matmul_(torch_guessmat(self$K,self$linkScale[1]))$
-        matmul_(torch_slipmat(self$K,self$linkScale[2]))
-    },
-    private=list(
-        stype=PType("unit",c(2))
-    )
-)
-
-
-
 setLink("Potential",PotentialLink)
 setLink("StepProbs",StepProbsLink)
 setLink("Difference",DifferenceLink)
@@ -273,10 +289,6 @@ setLink("PartialCredit",PartialCreditLink)
 setLink("Normal",GaussianLink)
 setLink("Gaussian",GaussianLink)
 setLink("Softmax",SoftmaxLink)
-## setLink("Noisy",NoisyLink)
-setLink("Slip",SlipLink)
-setLink("Guess",GuessLink)
-setLink("GuessSlip",GuessSlipLink)
 
 
 

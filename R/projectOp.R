@@ -1,16 +1,17 @@
 #' Turns a function argument into a name (without extra quotes if
-#' supplied as a string.  
+#' supplied as a string.
 fname <- function (fn) gsub('"(.*)"',"\\1",deparse(substitute(fn)))
 
 
 
 setGeneric("projectOp",function(m1,m2,op="+") standardGeneric("projectOp"))
+setOldClass("torch_tensor")
 
-setMethod("projectOp",c("numeric","numeric"), function(m1,m2,op="+") 
+setMethod("projectOp",c("numeric","numeric"), function(m1,m2,op="+")
   do.call(op,list(m1,m2)))
-setMethod("projectOp",c("array","numeric"), function(m1,m2,op="+") 
+setMethod("projectOp",c("array","numeric"), function(m1,m2,op="+")
   do.call(op,list(m1,m2)))
-setMethod("projectOp",c("numeric","array"), function(m1,m2,op="+") 
+setMethod("projectOp",c("numeric","array"), function(m1,m2,op="+")
   do.call(op,list(m1,m2)))
 
 setMethod("projectOp",c("array","array"), function (m1,m2,op="+") {
@@ -101,7 +102,7 @@ genMMt.tt <- function(m1,m2,combOp,summaryOp) {
   for (cc in 1L:nrow(m2))
     result[,cc] <- exec(summaryOp,exec(combOp,m1,m2[cc,]),2)
   result
-}  
+}
 
 make_MMt <- function(combOp,summaryOp) {
   if (!is.null(getTorchOp(combOp))) combOp <- getTorchOp(combOp)
@@ -128,7 +129,7 @@ setMethod("genMMt",c("torch_tensor","torch_tensor"),
 ## Shortcut for this operator.
 setMMt("*","sum",torch_matmul)
 
-  
+
 genMMtQ.matrix <- function(m1,m2,QQ,combOp,summaryOp) {
   result <- matrix(NA_real_,nrow(m1),nrow(m2))
   for (cc in 1L:nrow(m2))
@@ -144,7 +145,7 @@ genMMtQ.tt <- function(m1,m2,QQ,combOp,summaryOp) {
     result[,cc] <- exec(summaryOp,exec(combOp,m1[1,QQ[cc,]],
                                               m2[cc,QQ[cc,]]),2)
   result
-}  
+}
 
 make_MMtQ <- function(combOp,summaryOp) {
   if (!is.null(getTorchOp(combOp))) combOp <- getTorchOp(combOp)
@@ -172,4 +173,4 @@ setMMtQ("*","sum",function(m1,m2,QQ)
   torch_matmul(m1,torch_where(QQ,m2,torch_zeros_like(m2)))
   )
 
-  
+

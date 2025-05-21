@@ -3,20 +3,20 @@
 ### Calculates the effective theta values for a skill variable
 ### with the argument number of levels
 effectiveTheta10 <- function (nlevels) {
-  torch_tensor(rev(qnorm((2*(1:nlevels)-1)/(2*nlevels),0,1)))
+  torch_tensor(qnorm((2*(1:nlevels)-1)/(2*nlevels),0,1))
 }
 
-effectiveTheta <- function (nlevels,high2low=TRUE) {
+effectiveTheta <- function (nlevels,high2low=FALSE) {
   et <- qnorm((2*(1:nlevels)-1)/(2*nlevels))
   if (high2low) rev(et)
   else et
 }
 
-eTheta10 <- function (dims) {
+pTheta10 <- function (dims) {
   torch_cartisian_product(lapply(dims, \(d) effectiveTheta10(d)))
 }
 
-buildeTheta10 <- function(Tvallist) {
+buildpTheta10 <- function(Tvallist) {
   if (length(Tvallist)==0L) torch_tensor(0.0)
   return(torch_cartesian_prod(lapply(Tvallist,as_torch_tensor)))
 }
@@ -24,7 +24,7 @@ buildeTheta10 <- function(Tvallist) {
 cartesian_prod <- function (list_o_vecs)
   rev(expand.grid(rev(list_o_vecs)))
 
-as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=TRUE) {
+as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=FALSE) {
   pnames <- names(parents)
   if (length(parents) > 0L && length(pnames) == 0L) {
     pnames <- paste0(parentprefix,1L:length(parents))
@@ -43,7 +43,7 @@ as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=TRU
       }
       p
     }
-  }, parents, rep_len(high2low,length(parents))
+  }, parents, rep_len(high2low,length(parents)))
   names(parents) <- pnames
   parents
 }
@@ -53,7 +53,7 @@ as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=TRU
 ############
 ## New OO version
 
-CombinationRule <- nn_module(
+CombinationRule <- torch::nn_module(
     classname="CombinationRule",
 #    inherit = nn_Module,
     aop = torch_mul,
@@ -62,7 +62,8 @@ CombinationRule <- nn_module(
     aVec = NULL,
     bVec = NULL,
     setParents = function(parents) {
-      self$pTheta <- buildeTheta10(parents)
+      self$pTheta <- buildpTheta10(parents)
+      self$pNames <- lapply(parents,names)
       self$setDim(S=nrow(self$pTheta),J=ncol(self$pTheta))
     },
     setDim = function (S=1L,J=1L,K=1L) {
@@ -83,31 +84,58 @@ CombinationRule <- nn_module(
       }
       invisible(self)
     },
-    initialize = function (parents, nstates, QQ=TRUE, ...) {
+    initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,...) {
       private$SJK$K <- nstates
       self$setParent(parents)
       self$QQ <- QQ
+      self$high2low <- high2low
     },
     forward = function() {
-      if (!isTRUE(self$QQ)) {
+      amat <- self$aMat
+      qmat <- self$QQ
+      bmat <- self$bMat
+      if (self$high2low) {
+        amat <- amat$flipud_()
+        bmat <- bmat$flipud_()
+        if (!isTRUE(qmat))
+          qq <- qmat$flipud_()
+      }
+      if (!isTRUE(qmat)) {
         self$bop(
-                 genMMtQ(self$pTheta,self$aMat,self$QQ,
+                 genMMtQ(self$pTheta,amat,qmat,
                          self$aop,self$summary),
-                 self$bMat$t_())
+                 bmat$t_())
       } else {
         self$bop(
-                 genMMt(self$pTheta,self$aMat,
+                 genMMt(self$pTheta,amat,
                         self$aop,self$summary),
-                 self$bMat$t_())
+                 bmat$t_())
       }
+    },
+    getETframe = function () {
+      et <- self$et
+      frame <- data.frame(cartesian_prod(self$pNames),
+                          as_array(self$et))
+      names(frame) <- c(names(self$pNames),paste0("et",1L:ncol(et)))
+      frame
     },
     private=list(
         atype=PType("real",c(K,J)),
         btype=PType("real",c(K,1L)),
         SJK=list(S=1L,J=1L,K=1L),
+        high_low = FALSE,
+        pTheta=NULL,
         cache=NULL
     ),
     active = list(
+        high2low = function (value) {
+          if (missing(value)) return (private$high_low)
+          if (!is.logical(value))
+            abort("The high2low field must have a logical value.")
+          atype$high2low <- value
+          btype$high2low <- value
+          private$high_low <- value
+        },
         aType=function(value) {
           if (missing(value)) return (private$atype)
           if (!is(value,"PType"))
@@ -140,27 +168,29 @@ CombinationRule <- nn_module(
         aMat=function(value) {
           if (missing(value)) {
             if (is.null(self$aVec)) return (NULL)
-            return (tvect2pMat10(private$atype,self$aVec))
+            amat <- tvect2pMat10(private$atype,self$aVec)
+            return (amat)
           }
           pcheck <- checkParam(private$atype,value)
           if (!isTRUE(pcheck))
             abort("Illegal A parameter value,",pcheck,".")
           private$cache <- NULL
-          self$aVec <- nn_parameter(pMat2tvec10(private$atype,
-                                                as_torch_tensor(value)))
+          amat <- as_torch_tensor(value)
+          self$aVec <- nn_parameter(pMat2tvec10(private$atype,amat))
           invisible(self)
         },
         bMat=function(value) {
           if (missing(value)) {
             if (is.null(self$bVec)) return (NULL)
-            return (tvect2pMat10(private$btype,self$bVec))
+            bmat <- tvect2pMat10(private$btype,self$bVec)
+            return (bmat)
           }
           pcheck <- checkParam(private$btype,value)
           if (!isTRUE(pcheck))
             abort("Illegal A parameter value,",pcheck,".")
           private$cache <- NULL
-          self$bVec <- nn_parameter(pMat2tvec10(private$btype,
-                                                as_torch_tensor(value)))
+          bmat <- as_torch_tensor(value)
+           self$bVec <- nn_parameter(pMat2tvec10(private$btype,bmat))
           invisible(self)
         },
         et = function() {
@@ -180,23 +210,31 @@ CombinationRule <- nn_module(
 
 RuleASB <- CombinationRule
 
-RuleBSA <- nn_module(
+RuleBSA <- torch::nn_module(
     classname="RuleBSA",
     inherit = CombinationRule,
     aop =torch_mul,
     summary =torch_max,
     bop = torch_sub,
     forward = function() {
-      if (!isTRUE(self$QQ)) {
+      amat <- self$aMat
+      qmat <- self$QQ
+      bmat <- self$bMat
+      if (self$high2low) {
+        amat <- amat$flipud_()
+        bmat <- bmat$flipud_()
+        qq <- qmat$flipud_()
+      }
+      if (!isTRUE(qmat)) {
         self$aop(
-                 genMMtQ(self$pTheta,self$bMat,self$QQ,
+                 genMMtQ(self$pTheta,bmat,qmat,
                          self$bop,self$summary),
-                 self$aMat$t_())
+                 amat$t_())
       } else {
         self$aop(
-                 genMMt(self$pTheta,self$bMat,
+                 genMMt(self$pTheta,bmat,
                         self$bop,self$summary),
-                 self$aMat$t_())
+                 amat$t_())
       }
     },
     private=list(
@@ -214,27 +252,35 @@ RuleBSA <- nn_module(
     )
 )
 
-RuleBAS <- nn_module(
+RuleBAS <- torch::nn_module(
     classname="RuleBAS",
     inherit = CombinationRule,
     aop = torch_mul,
     summary = torch_max,
     bop =  torch_sub,
     forward = function() {
-      if (!isTRUE(self$QQ)) {
+      amat <- self$aMat
+      qmat <- self$QQ
+      bmat <- self$bMat
+      if (self$high2low) {
+        amat <- amat$flipud_()
+        bmat <- bmat$flipud_()
+        qq <- qmat$flipud_()
+      }
+      if (!isTRUE(qmat)) {
         tmp <- self$aop(self$bop(self$pTheta,
-                                 self$bMat$reshape(1,dim(self$bMat))),
-                        self$aMat$reshape(1,dim(self$aMat)))
+                                 bmat$reshape(1,dim(bmat))),
+                        amat$reshape(1,dim(amat)))
         result <- torch_empty(private$SJK[c("S","K")])
         for (kk in 1L:private$SJK["K"])
-          result[,kk] <- self$summary(tmp[,which(self$QQ[kk,]),kk],2)
+          result[,kk] <- self$summary(tmp[,which(qmat[kk,]),kk],2)
         result
       } else {
         self$summary(
                  self$aop(
                           self$bop(self$pTheta,
-                                        self$bMat$reshape(1,dim(self$bMat))),
-                          self$aMat$reshape(1,dim(self$aMat))),
+                                        bmat$reshape(1,dim(bmat))),
+                          amat$reshape(1,dim(amat))),
                  2)
       }
     },
@@ -260,7 +306,10 @@ RuleBAS <- nn_module(
 RuleConstB <- nn_module(
     classname="RuleConstB",
     inherit = CombinationRule,
-    forward = function() {self$bMat},
+    forward = function() {
+      if (self$high2low) return (self$bMat$flipud_())
+      self$bMat
+    },
     private=list(
         atype=NULL,
         btype=PType("const",c(K,J))
@@ -292,7 +341,10 @@ RuleConstB <- nn_module(
 RuleConstA <- nn_module(
     classname="RuleConstA",
     inherit = CombinationRule,
-    forward = function(input) {self$aMat},
+    forward = function(input) {
+      if (self$high2low) return (self$aMat$flipud_())
+      self$aMat
+    },
     private=list(
         atype=PType("const",c(K,J)),
         btype=NULL
@@ -322,7 +374,7 @@ RuleConstA <- nn_module(
 )
 
 
-CompensatoryRule <- nn_module(
+CompensatoryRule <- torch::nn_module(
     classname="CompensatoryRule",
     inherit = RuleASB,
     aop = torch_mul,
@@ -342,29 +394,38 @@ CompensatoryRule <- nn_module(
       private$rootj <- 1/sqrt(private$SJK$J)
     },
     forward = function() {
-      if (!isTRUE(self$QQ)) {
+      amat <- self$aMat
+      qmat <- self$QQ
+      bmat <- self$bMat
+      if (self$high2low) {
+        amat <- amat$flipud_()
+        bmat <- bmat$flipud_()
+        qq <- qmat$flipud_()
+      }
+      if (!isTRUE(qmat)) {
         self$bop(
-                 genMMtQ(self$pTheta,self$aMat,self$QQ,
+                 genMMtQ(self$pTheta,amat,qmat,
                          self$aop,self$summary),
-                 self$bMat$t_())
+                 bmat$t_())
       } else {
         ## Using built-in matrix multiplication should be faster
-        torch_addmm(self$bMat$neg_()$t_(),self$pTheta,self$aMat$t_(),alpha=private$rootj)
+        torch_addmm(bmat$neg_()$t_(),self$pTheta,amat$t_(),alpha=private$rootj)
       }
     }
 )
 
 
-CompensatoryRule1 <- nn_module(
-    classname="CompensatoryRule1",
+CompensatoryGRRule <- torch::nn_module(
+    classname="CompensatoryGRRule",
     inherit = CompensatoryRule,
     private=list(
-        atype=PType("pos",c(K,1L))
+        atype=PType("pos",c(1L,J)),
+        btype=PType("incrK",c(K,1L))
     )
 )
 
 
-ConjunctiveRule <- nn_module(
+ConjunctiveRule <- torch::nn_module(
     classname="ConjunctiveRule",
     inherit = RuleBSA,
     bop = torch_sub,
@@ -376,7 +437,7 @@ ConjunctiveRule <- nn_module(
      )
 )
 
-DisjunctiveRule <- nn_module(
+DisjunctiveRule <- torch::nn_module(
     classname="DisjunctiveRule",
     inherit = RuleBSA,
     bop = torch_sub,
@@ -389,7 +450,7 @@ DisjunctiveRule <- nn_module(
 )
 
 
-NoisyAndRule <- nn_module(
+NoisyAndRule <- torch::nn_module(
     classname="NoisyAndRule",
     inherit = RuleBAS,
     bop = torch_gt,
@@ -401,10 +462,10 @@ NoisyAndRule <- nn_module(
      )
 )
 
-NoisyOrRule <- nn_module(
+NoisyOrRule <- torch::nn_module(
     classname="NoisyAndRule",
     inherit = RuleBAS,
-    bop = torch_lte,
+    bop = torch_le,
     summary = torch_prod_1,
     aop = \(e1,e2) torch_pow(e2,e1),
     private=list(
@@ -418,7 +479,7 @@ NoisyOrRule <- nn_module(
 
 
 
-CenterRule <- nn_module(
+CenterRule <- torch::nn_module(
     classname="CenterRule",
     inherit = RuleConstB,
     prescale = identity,
@@ -430,7 +491,7 @@ CenterRule <- nn_module(
      )
 )
 
-DirichletRule <- nn_module(
+DirichletRule <- torch::nn_module(
     classname="DirichletRule",
     inherit = RuleConstB,
     prescale = identity,
@@ -445,7 +506,10 @@ DirichletRule <- nn_module(
 
 RuleSet <- new.env();
 
-getRule <- function(name) RuleSet[[name]]
+getRule <- function(name) {
+    if (is(name,"CombinationRule")) return(name)
+    RuleSet[[name]]
+}
 setRule <- function(name,value) {
   if (!is(value,"CombinationRule"))
     stop("Value must be a CombinationRule")
@@ -454,7 +518,7 @@ setRule <- function(name,value) {
 availableRules <- function() names(RuleSet)
 
 setRule("Compensatory",CompensatoryRule)
-setRule("Compensatory1",CompensatoryRule1)
+setRule("CompensatoryGR",CompensatoryGRRule)
 setRule("Conjunctive",ConjunctiveRule)
 setRule("Disjunctive",DisjunctiveRule)
 setRule("NoisyAnd",NoisyAndRule)

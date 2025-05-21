@@ -16,8 +16,12 @@ invprobit <- function (x) qnorm(x)
 
 logsumexp <- function (x) log(sum(exp(x)))
 
-torch_2simplex <- function (x,dim=-1L) {
+torch_simplexify_ <- function (x,dim=-1L) {
   cpt <- x$abs_()
+  cpt$div_(torch_sum(cpt,dim,TRUE))
+}
+torch_simplexify <- function (x,dim=-1L) {
+  cpt <- x$abs()
   cpt$div_(torch_sum(cpt,dim,TRUE))
 }
 
@@ -105,14 +109,17 @@ getTorchOp <- function (op) {
   torchOpMap[[opname]]
 }
 
-sumrootj <- function(x)
+sumrootk <- function(x) {
   sum(x)/sqrt(length(x))
-torch_sumrootj <- function(x,dim=-1,keepdim=FALSE,out=NULL)
+}
+torch_sumrootk <- function(x,dim=-1,keepdim=FALSE,out=NULL) {
   torch_sum(x,dim,keepdim,out)$div_(sqrt(prod(x$shape[dim])))
+}
 
 
-prodq <- function(x)
+prodq <- function(x) {
   1 - prod(1-x)
+}
 torch_prodq <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
   qqq <- torch_prod(torch_ones_like(x)$sub_(x),dim,keepdim,out)
   torch_ones_like(qqq)$sub(qqq)
@@ -130,7 +137,7 @@ torchSummaryMap <- list(
 
 getTorchSummaryOp <- function (op) {
   opname <- fname(op)
-  if (is.null(torchSummarypMap[[fname(opname)]]))
+  if (is.null(torchSummaryMap[[fname(opname)]]))
     stop("Could not find torch equivalent of ",opname)
   torchSummaryMap[[opname]]
 }
@@ -154,18 +161,20 @@ zeroMap <- list(
 
 getZeroOp <- function (op) {
   opname <- fname(op)
-  if (is.null(zeropMap[[opname]]))
+  if (is.null(zeroMap[[opname]]))
     stop("Could not find torch equivalent of ",opname)
   zeroMap[[opname]]
 }
 
 ## Define qnorm and pnorm in terms of erf and erfinv
-cpt_pnorm <- function (x)
+cpt_pnorm <- function (x) {
   torch_div(x,sqrt(2))$erf_()$add_(1)$div_(2)
+}
 torch_pnorm <- jit_trace(cpt_pnorm,torch_tensor(c(-.67,0,.67)))
 
-cpt_qnorm <- function (x)
+cpt_qnorm <- function (x) {
   torch_mul(x,2)$sub_(1)$erfinv_()$mul_(sqrt(2))
+}
 torch_qnorm <- jit_trace(cpt_qnorm,torch_tensor(c(.25,.5,.75)))
 
 
@@ -191,7 +200,7 @@ torchUnaryMap <- list(
     floor= torch_floor,
     frac= torch_frac,
     invlogit= torch_sigmoid,
-    invprobit= torch_pnorm
+    invprobit= torch_pnorm,
     linvlogit=nn_log_sigmoid,
     log10= torch_log10,
     log= torch_log,
@@ -208,7 +217,7 @@ torchUnaryMap <- list(
 )
 
 getTorchUnaryOp <- function (opname) {
-  if (is.null(torchUnarypMap[[opname]]))
+  if (is.null(torchUnaryMap[[opname]]))
     stop("Could not find torch equivalent of ",opname)
   torchUnaryMap[[opname]]
 }
@@ -224,11 +233,11 @@ torchVectorMap <- list(
     t= torch_t,
     "%*%"= torch_matmul,
     softmax= nnf_softmax,
-    lsoftmax= nnf_log_softmax,
+    lsoftmax= nnf_log_softmax
 )
 
 getTorchVectorOp <- function (opname) {
-  if (is.null(torchVectorpMap[[opname]]))
+  if (is.null(torchVectorMap[[opname]]))
     stop("Could not find torch equivalent of ",opname)
   torchVectorMap[[opname]]
 }
@@ -257,7 +266,7 @@ getTorchVectorOp <- function (opname) {
 
 guessmat <- function(n,g) {
   mat <- matrix(0,n,n)
-  for(nn in 1:(n-1)) 
+  for(nn in 1:(n-1))
     mgcv::sdiag(mat,nn) <- g^nn
   diag(mat) <- 1-rowSums(mat)
   mat
@@ -273,7 +282,7 @@ torch_guessmat <- function(n,g) {
 
 slipmat <- function(n,s) {
   mat <- matrix(0,n,n)
-  for(nn in 1:(n-1)) 
+  for(nn in 1:(n-1))
     mgcv::sdiag(mat,-nn) <- s^nn
   diag(mat) <- 1-rowSums(mat)
   mat
@@ -283,7 +292,7 @@ torch_slipmat <- function(n,s) {
   mat <- torch_zeros(n,n)
   for (offset in 1L:(n-1L))
     mat <- mat$add_(torch_embed_diag(torch_tensor(rep(s^offset,n-offset)),
-                                     offset))
+                                     -offset))
   mat$add_(torch_embed_diag(mat$sum_(2)$neg_()$add_(1)),0)
 }
 

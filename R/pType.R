@@ -1,5 +1,6 @@
 PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE) {
-  res <- list(dimexpr=substitute(dim),dim=NULL,zero=zero, used=used)
+  res <- list(dimexpr=substitute(dim),dim=NULL,zero=zero, used=used,
+              high2low=FALSE)
   class(res) <- c(pType,"PType")
   res
 }
@@ -220,23 +221,36 @@ checkParam.incrK <- function(pType,par) {
   for (pVec in pVeclist) {
     if (any(is.na(pVec)))
       return("Unexpected NAs in parameter.")
-    if (any(diff(pVec) <=0))
-      return("Columns are not increasing.")
+    if (pType$high2low) {
+      if (any(diff(pVec) >=0))
+        return("Columns are not decreasing.")
+    } else {
+      if (any(diff(pVec) <=0))
+        return("Columns are not increasing.")
+    }
   }
 }
 natpar2Rvec.incrK <- function(pType,natpar) {
-  list2vec(lapply(pMat2colist(pType,natpar),ldiff))
+  difffun <- ldiff
+  if (pType$high2low) difffun <- \(v) ldiff(rev(v))
+  list2vec(lapply(pMat2colist(pType,natpar),difffun))
 }
 Rvec2natpar.incrK <- function(pType,Rvec) {
-  pVec2pMat(pType,list2vec(lapply(vec2collist(pType,Rvec),ecusum)))
+  sumfun <- ecusum
+  if (pType$high2low) difffun <- \(v) rev(ecusum(v))
+  pVec2pMat(pType,list2vec(lapply(vec2collist(pType,Rvec),sumfun)))
 }
 getZero.incrK <- function(pType) {NA}
 
 natpar2tvec.incrK <- function(pType,natpar) {
+  if (pType$high2low) natpar$flipud_()
   torch_cat(lapply(pMat2colist(pType,natpar),torch_ldiff))
 }
 tvec2natpar.incrK <- function(pType,Rvec) {
-  pVec2pMat10(pType,torch_cat(lapply(vec2collist(pType,Rvec),torch_ecusum)))
+  natp <- pVec2pMat10(pType,torch_cat(lapply(vec2collist(pType,Rvec),
+                                             torch_ecusum)))
+  if (pType$high2low) natp <- natp$flipud_()
+  natp
 }
 getZero.incrK <- function(pType) {NA}
 

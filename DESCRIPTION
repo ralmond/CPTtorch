@@ -21,7 +21,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 URL: http://pluto.coe.fsu.edu/RNetica
 Depends: 
-    methods, torch, R6
+    methods, torch, R6,
     R (>= 3.5.0)
 Imports: stats, utils, dplyr, rlang
 Suggests: 
@@ -35,5 +35,6 @@ Suggests:
     withr,
     kableExtra,
     testthat (>= 3.0.0)
+Collate:  transformations.R projectOp.R pType.R Rules.R Link.R CPT.R
 VignetteBuilder: knitr
 Config/testthat/edition: 3
