@@ -1,6 +1,6 @@
 #' Turns a function argument into a name (without extra quotes if
 #' supplied as a string.
-fname <- function (fn) gsub('"(.*)"',"\\1",deparse(substitute(fn)))
+## fname <- function (fn) gsub('"(.*)"',"\\1",deparse(substitute(fn)))
 
 
 
@@ -30,8 +30,8 @@ setMethod("projectOp",c("array","array"), function (m1,m2,op="+") {
     ii <- ((i-1) %/% stride %% resdim) +1
     ii1 <- ifelse(dim1==1L,1L,ii)
     ii2 <- ifelse(dim2==1L,1L,ii)
-    res[i] <- exec(op,exec("[",m1,as.list(ii1)),
-                      exec("[",m2,as.list(ii2)))
+    res[i] <- exec(op,inject(m1[!!!as.list(ii1)]),
+                      inject(m2[!!!as.list(ii2)]))
   }
   res
 })
@@ -44,7 +44,9 @@ setMethod("projectOp",c("array","array"), function (m1,m2,op="+") {
 
 setMethod("projectOp",c("torch_tensor","torch_tensor"),
   function (m1,m2,op="+") {
-    if (!is.null(getTorchOp(op))) op <- getTorchOp(op)
+    op1 <- gsub('"(.*)"',"\\1",deparse(substitute(op)))
+    op1 <- try(inject(getTorchOp(!!op1)))
+    if (!is(op1,"try-error")) op <- op1
     do.call(op,list(m1,m2))
   }
 )
@@ -61,7 +63,9 @@ setMethod("marginalize","array",function(pot,dim=1,op="sum") {
 })
 
 setMethod("marginalize","torch_tensor",function(pot,dim=1,op="sum") {
-  if (!is.null(getTorchSummaryOp(op))) op <- getTorchSummaryOp(op)
+  op1 <- gsub('"(.*)"',"\\1",deparse(substitute(op)))
+  op1 <- try(inject(getTorchSummaryOp(!!op1)))
+  if (!is(op1,"try-error")) op <- op1
   do.call(op,list(pot,dim))
 })
 
@@ -76,16 +80,27 @@ setMethod("marginalize","torch_tensor",function(pot,dim=1,op="sum") {
 genmmttab <- new.env()
 
 
-fetchMMt <- function(combOp,summaryOp)
-  genmmttab[[paste("MMt",fname(combOb),fname(summaryOp),sep="_")]]
-fetchMMtQ <- function(combOp,summaryOp)
-  genmmttab[[paste("MMtQ",fname(combOb),fname(summaryOp),sep="_")]]
-setMMt <- function(combOp,summaryOp,fval)
-  genmmttab[[paste("MMt",fname(combOb),fname(summaryOp),sep="_")]] <-
-    fval
-setMMtQ <- function(combOp,summaryOp,fval)
-  genmmttab[[paste("MMtQ",fname(combOb),fname(summaryOp),sep="_")]] <-
-    fval
+## fetchMMt <- function(combOp,summaryOp) {
+##   combOp <- gsub('"(.*)"',"\\1",deparse(substitute(combOp)))
+##   summaryOp <- gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))
+##   genmmttab[[paste("MMt",combOp,summaryOp,sep="_")]]
+## }
+## fetchMMtQ <- function(combOp,summaryOp) {
+##   combOp <- gsub('"(.*)"',"\\1",deparse(substitute(combOp)))
+##   summaryOp <- gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))
+##   genmmttab[[paste("MMtQ",combOp,summaryOp,sep="_")]]
+## setMMt <- function(combOp,summaryOp,fval) {
+##   combOp <- gsub('"(.*)"',"\\1",deparse(substitute(combOp)))
+##   summaryOp <- gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))
+##   genmmttab[[paste("MMt",combOp,summaryOp,sep="_")]] <-
+##     fval
+## }
+## setMMtQ <- function(combOp,summaryOp,fval) {
+##   combOp <- gsub('"(.*)"',"\\1",deparse(substitute(combOp)))
+##   summaryOp <- gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))
+##   genmmttab[[paste("MMtQ",combOp,summaryOp,sep="_")]] <-
+##     fval
+## }
 
 
 
@@ -104,36 +119,42 @@ genMMt.tt <- function(m1,m2,combOp,summaryOp) {
   result
 }
 
-make_MMt <- function(combOp,summaryOp) {
-  if (!is.null(getTorchOp(combOp))) combOp <- getTorchOp(combOp)
-  if (!is.null(getTorchOp(summaryOp))) combOp <- getTorchOp(summaryOp)
-  function(m1,m2) genMMt.tt(m1,m2,summaryOp,combOp)
-}
+## make_MMt <- function(combOp,summaryOp) {
+##   if (!is.null(getTorchOp(combOp))) combOp <- getTorchOp(combOp)
+##   if (!is.null(getTorchOp(summaryOp))) combOp <- getTorchOp(summaryOp)
+##   function(m1,m2) genMMt.tt(m1,m2,summaryOp,combOp)
+## }
 
-supplyMMt <- function(combOp,summaryOp,m1,m2) {
-  if (is.null(fetchMMt(combOp,summaryOp))) {
-    setMMt(combOp,summaryOp,
-           jit_trace(make_MMt(combOp,summaryOp),m1,m1))
-  }
-  fetchMMt(combOp,summaryOp)
-}
+## supplyMMt <- function(combOp,summaryOp,m1,m2) {
+##   if (is.null(fetchMMt(combOp,summaryOp))) {
+##     setMMt(combOp,summaryOp,
+##            jit_trace(make_MMt(combOp,summaryOp),m1,m1))
+##   }
+##   fetchMMt(combOp,summaryOp)
+## }
 
 
 setGeneric("genMMt",function(m1,m2,combOp,summaryOp)
   standardGeneric("genMMt"))
 setMethod("genMMt",c("matrix","matrix"),genMMt.matrix)
 setMethod("genMMt",c("torch_tensor","torch_tensor"),
-          function(m1,m2,combOp,summaryOp)
-            exec(supplyMMt(combOp,summaryOp,m1,m2),m1,m2))
+          function(m1,m2,combOp,summaryOp) {
+            sop <- gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))
+            summaryOp <- inject(getTorchSummaryOp(!!sop))
+            cop <- gsub('"(.*)"',"\\1",deparse(substitute(combOp)))
+            combOp <- inject(getTorchOp(!!cop))
+            genMMt.tt(m1,m2,combOp,summaryOp)
+          })
 
 ## Shortcut for this operator.
-setMMt("*","sum",torch_matmul)
+## setMMt("*","sum",torch_matmul)
 
 
 genMMtQ.matrix <- function(m1,m2,QQ,combOp,summaryOp) {
   result <- matrix(NA_real_,nrow(m1),nrow(m2))
   for (cc in 1L:nrow(m2))
-    result[,cc] <- apply(sweep(m1[,QQ[cc,]],2,m2[cc,QQ[cc,]],combOp),1,
+    result[,cc] <- apply(sweep(m1[,QQ[cc,],drop=FALSE],2,
+                               m2[cc,QQ[cc,],drop=FALSE],combOp),1,
                          summaryOp)
   result
 }
@@ -142,35 +163,41 @@ genMMtQ.matrix <- function(m1,m2,QQ,combOp,summaryOp) {
 genMMtQ.tt <- function(m1,m2,QQ,combOp,summaryOp) {
   result <- torch_empty(nrow(m1),nrow(m2))
   for (cc in 1L:nrow(m2))
-    result[,cc] <- exec(summaryOp,exec(combOp,m1[1,QQ[cc,]],
-                                              m2[cc,QQ[cc,]]),2)
+    result[,cc] <- exec(summaryOp,exec(combOp,m1[,QQ[cc,],drop=FALSE],
+                                              m2[cc,QQ[cc,],drop=FALSE]),2)
   result
 }
 
-make_MMtQ <- function(combOp,summaryOp) {
-  if (!is.null(getTorchOp(combOp))) combOp <- getTorchOp(combOp)
-  if (!is.null(getTorchOp(summaryOp))) combOp <- getTorchOp(summaryOp)
-  function(m1,m2) genMMtQ.tt(m1,m2,summaryOp,combOp)
-}
+## make_MMtQ <- function(combOp,summaryOp) {
+##   if (!is.null(getTorchOp(combOp))) combOp <- getTorchOp(combOp)
+##   if (!is.null(getTorchOp(summaryOp))) combOp <- getTorchOp(summaryOp)
+##   function(m1,m2) genMMtQ.tt(m1,m2,summaryOp,combOp)
+## }
 
-supplyMMtQ <- function(combOp,summaryOp,m1,m2) {
-  if (is.null(fetchMMtQ(combOp,summaryOp))) {
-    setMMtQ(combOp,summaryOp,
-           jit_trace(make_MMt(combOp,summaryOp),m1,m1))
-  }
-  fetchMMtQ(combOp,summaryOp)
-}
+## supplyMMtQ <- function(combOp,summaryOp,m1,m2) {
+##   if (is.null(fetchMMtQ(combOp,summaryOp))) {
+##     setMMtQ(combOp,summaryOp,
+##            jit_trace(make_MMt(combOp,summaryOp),m1,m1))
+##   }
+##   fetchMMtQ(combOp,summaryOp)
+## }
 
 
 setGeneric("genMMtQ",function(m1,m2,QQ,combOp,summaryOp)
   standardGeneric("genMMtQ"))
 setMethod("genMMtQ",c("matrix","matrix","matrix"),genMMtQ.matrix)
 setMethod("genMMtQ",c("torch_tensor","torch_tensor","torch_tensor"),
-          function(m1,m2,QQ,combOp,summaryOp)
-            exec(supplyMMtQ(combOp,summaryOp,m1,m2,QQ),m1,m2,QQ))
+          function(m1,m2,QQ,combOp,summaryOp) {
+            summaryOp <- inject(getTorchSummaryOp(
+              !!gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))))
+            combOp <- inject(getTorchOp(
+              !!gsub('"(.*)"',"\\1",deparse(substitute(combOp)))))
+            genMMtQ.tt(m1,m2,QQ,combOp,summaryOp)
+          })
 
-setMMtQ("*","sum",function(m1,m2,QQ)
-  torch_matmul(m1,torch_where(QQ,m2,torch_zeros_like(m2)))
-  )
+
+## setMMtQ("*","sum",function(m1,m2,QQ)
+##   torch_matmul(m1,torch_where(QQ,m2,torch_zeros_like(m2)))
+##   )
 
 

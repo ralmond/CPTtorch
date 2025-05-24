@@ -103,7 +103,7 @@ torchOpMap <- list(
 )
 
 getTorchOp <- function (op) {
-  opname <- fname(op)
+  opname <- gsub('"(.*)"',"\\1",deparse(substitute(op)))
   if (is.null(torchOpMap[[opname]]))
     stop("Could not find torch equivalent of ",opname)
   torchOpMap[[opname]]
@@ -113,7 +113,8 @@ sumrootk <- function(x) {
   sum(x)/sqrt(length(x))
 }
 torch_sumrootk <- function(x,dim=-1,keepdim=FALSE,out=NULL) {
-  torch_sum(x,dim,keepdim,out)$div_(sqrt(prod(x$shape[dim])))
+  result <- torch_sum(x,dim,keepdim,out)
+  result$div_(sqrt(x$length()/result$length()))
 }
 
 
@@ -133,11 +134,26 @@ torch_prod_1 <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
 
 
 torchSummaryMap <- list(
+        "max"=torch_amax,
+    "min"=torch_amin,
+    logsumexp=         torch_logsumexp,
+    median=            torch_median,
+    mean=               torch_mean,
+    nansum=            torch_nansum,
+    prod=              torch_prod,
+    std=               torch_std,
+    std_mean=          torch_std_mean,
+    sum=               torch_sum,
+    var=               torch_var,
+    var_mean=          torch_var_mean,
+    sumrootk=          torch_sumrootk,
+    prodq=             torch_prodq,
+    prod_1=            torch_prod_1
 )
 
 getTorchSummaryOp <- function (op) {
-  opname <- fname(op)
-  if (is.null(torchSummaryMap[[fname(opname)]]))
+  opname <-  gsub('"(.*)"',"\\1",deparse(substitute(op)))
+  if (is.null(torchSummaryMap[[opname]]))
     stop("Could not find torch equivalent of ",opname)
   torchSummaryMap[[opname]]
 }
@@ -160,7 +176,7 @@ zeroMap <- list(
 )
 
 getZeroOp <- function (op) {
-  opname <- fname(op)
+  opname <- gsub('"(.*)"',"\\1",deparse(substitute(op)))
   if (is.null(zeroMap[[opname]]))
     stop("Could not find torch equivalent of ",opname)
   zeroMap[[opname]]
@@ -275,9 +291,9 @@ guessmat <- function(n,g) {
 torch_guessmat <- function(n,g) {
   mat <- torch_zeros(n,n)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_embed_diag(torch_tensor(rep(g^offset,n-offset)),
+    mat <- mat$add_(torch_diag_embed(torch_tensor(rep(g^offset,n-offset)),
                                      offset))
-  mat$add_(torch_embed_diag(mat$sum_(2)$neg_()$add_(1)),0)
+  mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
 }
 
 slipmat <- function(n,s) {
@@ -291,9 +307,9 @@ slipmat <- function(n,s) {
 torch_slipmat <- function(n,s) {
   mat <- torch_zeros(n,n)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_embed_diag(torch_tensor(rep(s^offset,n-offset)),
+    mat <- mat$add_(torch_diag_embed(torch_tensor(rep(s^offset,n-offset)),
                                      -offset))
-  mat$add_(torch_embed_diag(mat$sum_(2)$neg_()$add_(1)),0)
+  mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
 }
 
 

@@ -53,8 +53,30 @@ test_that("prodq",{
 
 })
 
-# sumrootk
-# torch_pnorm, qnorm
-# guessmat
-# slipmat
+test_that("sumrootk",{
+  root22 <- rep(sqrt(2),2)
+  expect_equal(sumrootk(root22),2,tolerance=.00001)
+  expect_equal(as.numeric(torch_sumrootk(torch_tensor(root22))),2,
+               tolerance=.00001)
+})
+
+test_that("torch_pnorm,qnorm",{
+  expect_equal(as.numeric(torch_pnorm(torch_tensor(.25))),
+               pnorm(.25), tolerance=.00001)
+  expect_equal(as.numeric(torch_qnorm(torch_tensor(.25))),
+               qnorm(.25), tolerance=.00001)
+})
+
+test_that("guessmat",{
+  gm3.5 <- matrix(c(.25,.5,.25, 0,.5,.5, 0,0,1), 3,3, byrow=TRUE)
+  expect_equal(guessmat(3,.5),gm3.5)
+  expect_equal(as.matrix(torch_guessmat(3,.5)),gm3.5)
+})
+
+test_that("slipmat",{
+  sm3.5 <- matrix(c(1,0,0, .5,.5,0, .25,.5,.25), 3,3, byrow=TRUE)
+  expect_equal(slipmat(3,.5),sm3.5)
+  expect_equal(as.matrix(torch_slipmat(3,.5)),sm3.5)
+})
+
 

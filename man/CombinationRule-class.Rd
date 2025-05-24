@@ -46,7 +46,10 @@
     \item{summary}{This is the summary function used in the algorithm
       (see Algorithm).  It should have
       \code{signature(self:torch_tensor, dim:integer)}.}
-    \item{pTheta}{This is the calculated Parent Theta Matrix.  The
+    \item{high2low}{A logical value.  If true, then the child states
+      are ordered from highest to lowest, and the A, B and QQ parameters
+      should have their columns reversed.}
+     \item{pTheta}{This is the calculated Parent Theta Matrix.  The
       recommended way to set this field is through the
       \code{$setParents()} method.}
   }
@@ -230,6 +233,11 @@ constant rules) or to produce a more efficient implementation (see the
   \code{\link[torch]{nn_parameter}} objects are the vector views
   (\code{$aVec} and \code{$bVec}).  These are the versions which are
   optimized or should be randomly sampled in a Monte Carlo algorithm.
+
+  Internally, the algorithms assume that the child variable is ordered
+  from the lowest state to the highest state.  If the 
+  If the field \code{$high2low} is set to true, then the parameters have
+  their columns reversed in the \code{$forward} method.
 
 }
 \section{Parameter Dimensions}{
