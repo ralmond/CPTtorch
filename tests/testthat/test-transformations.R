@@ -11,6 +11,10 @@ test_that("softmax",{
 test_that("cloglog",{
   expect_equal(invcloglog(cloglog(.7)),.7)
   expect_equal(cloglog(invcloglog(1.5)),1.5)
+  expect_equal(as.numeric(torch_invcloglog(
+    torch_cloglog(torch_tensor(.7)))),.7,tolerance=.0001)
+  expect_equal(as.numeric(torch_cloglog(
+    torch_invcloglog(torch_tensor(1.5)))),1.5,tolerance=.00001)
 })
 
 test_that("ldiff",{
@@ -18,9 +22,25 @@ test_that("ldiff",{
   expect_equal(ldiff(ecusum(rep(0,5))),rep(0,5))
 })
 
+test_that("ldiff torch",{
+  tv <- torch_tensor(0:5,dtype=torch_float())
+  expect_equal(as.numeric(torch_ecusum(torch_ldiff(tv))),
+               0:5,tolerance=.00001)
+  tv0 <- torch_tensor(rep(0,5),dtype=torch_float())
+  expect_equal(as.numeric(torch_ldiff(torch_ecusum(tv0))),rep(0,5),
+               tolerance=.00001)
+})
+
 test_that("lldiff",{
   expect_equal(eecusum(lldiff(1:5)),1:5)
+  tv <- torch_tensor(1:5,dtype=torch_float())
+  expect_equal(as.numeric(torch_eecusum(torch_lldiff(tv))),1:5,
+               tolerance=.00001)
+
   expect_equal(lldiff(eecusum(rep(0,5))),rep(0,5))
+  tv0 <- torch_tensor(rep(0,5),dtype=torch_float())
+  expect_equal(as.numeric(torch_lldiff(torch_eecusum(tv0))),rep(0,5),
+               tolerance=.00001)
 })
 
 

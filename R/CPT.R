@@ -1,3 +1,5 @@
+# !diagnostics suppress=self,private,super
+
 CPT_Model <-
   torch::nn_module(
     classname="CPT_Model",

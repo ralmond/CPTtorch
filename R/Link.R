@@ -1,3 +1,6 @@
+# !diagnostics suppress=self,private,super
+
+
 CPT_Link <- torch::nn_module(
     classname="CPT_Link",
     link=identity,
@@ -106,7 +109,7 @@ CPT_Link <- torch::nn_module(
 LinkedList <- new.env()
 getLink <- function (linkname) {
   if (is(linkname,"CPT_Link")) return(linkname)
-  LinkedList(linkname)
+  LinkedList[[linkname]]
 }
 setLink <- function (linkname,value) {
   if (!is.null(value) && !is(value,"CPT_Link"))

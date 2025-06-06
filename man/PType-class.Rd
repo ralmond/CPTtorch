@@ -234,5 +234,22 @@ isPtype(obj)
 
 }
 \examples{
+pt <- PType("pos")
+pt <- setpTypeDim(pt,K=3,J=2)
+af <- matrix(1:6+.1,3,2)
+checkParam(pt,af)
+af[2,2] <- -3
+checkParam(pt,af)
+
+pv <- (-2:3)+.1
+pm <- matrix(exp(pv),3,2)
+natpar2Rvec(pt,pm)
+Rvec2natpar(pt,pv)
+
+qq <- matrix(c(T,F,T,F,T,T),3,2)
+whichUsed(pt) <- qq
+natpar2Rvec(pt,pm)
+
+
 }
 \keyword{classes}

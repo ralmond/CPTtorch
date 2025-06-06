@@ -1,23 +1,21 @@
-
+# !diagnostics suppress=self,private,super
 
 ### Calculates the effective theta values for a skill variable
 ### with the argument number of levels
-effectiveTheta10 <- function (nlevels) {
-  torch_tensor(qnorm((2*(1:nlevels)-1)/(2*nlevels),0,1))
-}
 
 effectiveTheta <- function (nlevels,high2low=FALSE) {
   et <- qnorm((2*(1:nlevels)-1)/(2*nlevels))
   if (high2low) rev(et)
   else et
 }
-
-pTheta10 <- function (dims) {
-  torch_cartisian_product(lapply(dims, \(d) effectiveTheta10(d)))
+effectiveTheta10 <- function (nlevels,high2low=FALSE) {
+  torch_tensor(effectiveTheta(nlevels,high2low))
 }
 
+
 buildpTheta10 <- function(Tvallist) {
-  if (length(Tvallist)==0L) torch_tensor(0.0)
+  if (length(Tvallist)==0L) return(torch_tensor(0.0))
+  if (length(Tvallist)==1L) return(torch_reshape(torch_tensor(Tvallist[[1]]),c(-1,1)))
   return(torch_cartesian_prod(lapply(Tvallist,as_torch_tensor)))
 }
 
@@ -32,7 +30,8 @@ as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=FAL
   if (is.numeric(parents)) {
     parents <- lapply(parents,\(p) paste0(stateprefix,1L:p))
   }
-  parents <- map(parents, \(p,h2l) {
+  parents <- purrr::map2(parents, rep_len(high2low,length(parents)),
+                         \(p,h2l) {
     if (is.character(p)) {
       pp <- effectiveTheta(length(p),h2l)
       names(pp) <- p
@@ -43,7 +42,7 @@ as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=FAL
       }
       p
     }
-  }, parents, rep_len(high2low,length(parents)))
+  })
   names(parents) <- pnames
   parents
 }
@@ -68,27 +67,29 @@ CombinationRule <- torch::nn_module(
     },
     setDim = function (S=1L,J=1L,K=1L) {
       if (!missing(S)) private$SJK$S <- S
-      if (!missing(J)) private$SJK$S <- J
-      if (!missing(K)) private$SJK$S <- K
+      if (!missing(J)) private$SJK$J <- J
+      if (!missing(K)) private$SJK$K <- K
       if (!is.null(private$atype)) {
         adim <- pTypeDim(private$atype)
         private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
         if (!isTRUE(all.equal(adim,pTypeDim(private$atype))))
-           self$aMat <- torch_tensor(defaultParameter(private$atype))
+           self$aMat <- defaultParameter10(private$atype)
       }
       if (!is.null(private$btype)) {
         bdim <- pTypeDim(private$btype)
         private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
         if (!isTRUE(all.equal(bdim,pTypeDim(private$btype))))
-           self$bMat <- torch_tensor(defaultParameter(private$btype))
+           self$bMat <- defaultParameter10(private$btype)
       }
       invisible(self)
     },
     initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,...) {
       private$SJK$K <- nstates
-      self$setParent(parents)
+      self$setParents(parents)
       self$QQ <- QQ
       self$high2low <- high2low
+      self$aMat <- defaultParameter10(private$atype)
+      self$bMat <- defaultParameter10(private$btype)
     },
     forward = function() {
       amat <- self$aMat
@@ -113,11 +114,10 @@ CombinationRule <- torch::nn_module(
       }
     },
     getETframe = function () {
-      et <- self$et
-      frame <- data.frame(cartesian_prod(self$pNames),
-                          as_array(self$et))
-      names(frame) <- c(names(self$pNames),paste0("et",1L:ncol(et)))
-      frame
+      if (is.null(private$cache))
+        private$cache <- self$forward()
+      et <- private$cache
+      data.frame(cartesian_prod(self$pNames),et=as_array(et))
     },
     private=list(
         atype=PType("real",c(K,J)),
@@ -132,9 +132,10 @@ CombinationRule <- torch::nn_module(
           if (missing(value)) return (private$high_low)
           if (!is.logical(value))
             abort("The high2low field must have a logical value.")
-          atype$high2low <- value
-          btype$high2low <- value
+          private$atype$high2low <- value
+          private$btype$high2low <- value
           private$high_low <- value
+          private$cache <- NULL
         },
         aType=function(value) {
           if (missing(value)) return (private$atype)
@@ -143,7 +144,7 @@ CombinationRule <- torch::nn_module(
           private$atype <- value
           if (!is.null(private$SJK)) {
             private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
-            self$aMat <- torch_tensor(defaultParam(private$atype))
+            self$aMat <- defaultParameter10(private$atype)
           }
           invisible(self)
         },
@@ -154,13 +155,13 @@ CombinationRule <- torch::nn_module(
           private$btype <- value
           if (!is.null(private$SJK)) {
             private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
-            self$bMat <- torch_tensor(defaultParam(private$btype))
+            self$bMat <- defaultParameter10(private$btype)
           invisible(self)
           }
         },
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$atype))
-          if (!is.logical)
+          if (!is.logical(value))
             abort("The QQ field must be a logical matrix or TRUE")
           whichUsed(private$atype) <- value
           invisible(self)
@@ -168,42 +169,42 @@ CombinationRule <- torch::nn_module(
         aMat=function(value) {
           if (missing(value)) {
             if (is.null(self$aVec)) return (NULL)
-            amat <- tvect2pMat10(private$atype,self$aVec)
+            amat <- tvec2natpar(private$atype,self$aVec)
             return (amat)
           }
           pcheck <- checkParam(private$atype,value)
           if (!isTRUE(pcheck))
-            abort("Illegal A parameter value,",pcheck,".")
+            abort(paste("Illegal A parameter value,",pcheck,"."))
           private$cache <- NULL
           amat <- as_torch_tensor(value)
-          self$aVec <- nn_parameter(pMat2tvec10(private$atype,amat))
+          self$aVec <- nn_parameter(natpar2tvec(private$atype,amat))
           invisible(self)
         },
         bMat=function(value) {
           if (missing(value)) {
             if (is.null(self$bVec)) return (NULL)
-            bmat <- tvect2pMat10(private$btype,self$bVec)
+            bmat <- tvec2natpar(private$btype,self$bVec)
             return (bmat)
           }
           pcheck <- checkParam(private$btype,value)
           if (!isTRUE(pcheck))
-            abort("Illegal A parameter value,",pcheck,".")
+            abort(paste("Illegal A parameter value,",pcheck,"."))
           private$cache <- NULL
           bmat <- as_torch_tensor(value)
-           self$bVec <- nn_parameter(pMat2tvec10(private$btype,bmat))
+           self$bVec <- nn_parameter(natpar2tvec(private$btype,bmat))
           invisible(self)
         },
         et = function() {
           if (is.null(private$cache))
             private$cache <- self$forward()
-          private$cache
+          torch_reshape(private$cache,c(sapply(self$pNames,length),-1))
         },
         et_p = function(value) {
           if (missing(value))
-            return(is.null(private$cache))
+            return(!is.null(private$cache))
           if (isFALSE(value))
             private$cache <- NULL
-          inivisble(self)
+          invisible(self)
         }
     )
 )
@@ -323,7 +324,7 @@ RuleConstB <- nn_module(
         aMat=function(value) {
           if (missing(value)) {
             if (is.null(self$aVec)) return (NULL)
-            return (tvect2pMat10(private$atype,self$aVec))
+            return (pVec2pMat10(private$atype,self$aVec))
           }
           warning("A parameter is ignored in ConstB Rules.")
           invisible(self)
@@ -358,7 +359,7 @@ RuleConstA <- nn_module(
         bMat=function(value) {
           if (missing(value)) {
             if (is.null(self$bVec)) return (NULL)
-            return (tvect2pMat10(private$btype,self$aVec))
+            return (pVec2pMat10(private$btype,self$aVec))
           }
           warning("B parameter is ignored in ConstB Rules.")
           invisible(self)
@@ -385,10 +386,10 @@ CompensatoryRule <- torch::nn_module(
         btype=PType("real",c(K,1)),
         rootj=NA
     ),
-    initialize=function(parents, nstates, QQ=true, ...) {
-      super$initialize(parents,nstates,QQ,...)
-      private$rootj <- 1/sqrt(private$SJK$J)
-    },
+    # initialize=function(parents, nstates, QQ=true, ...) {
+    #   super$initialize(parents,nstates,QQ,...)
+    #   private$rootj <- 1/sqrt(private$SJK$J)
+    # },
     setParents = function(parents) {
       super$setParents(parents)
       private$rootj <- 1/sqrt(private$SJK$J)
@@ -409,7 +410,7 @@ CompensatoryRule <- torch::nn_module(
                  bmat$t_())
       } else {
         ## Using built-in matrix multiplication should be faster
-        torch_addmm(bmat$neg_()$t_(),self$pTheta,amat$t_(),alpha=private$rootj)
+        torch_addmm(bmat$neg()$t_(),self$pTheta,amat$t(),alpha=private$rootj)
       }
     }
 )
@@ -504,18 +505,20 @@ DirichletRule <- torch::nn_module(
 )
 
 
-RuleSet <- new.env();
 
+RuleSet <- new.env()
 getRule <- function(name) {
-    if (is(name,"CombinationRule")) return(name)
-    RuleSet[[name]]
+  if (is(name,"CombinationRule")) return(name)
+  RuleSet[[name]]
 }
-setRule <- function(name,value) {
+setRule = function(name,value) {
   if (!is(value,"CombinationRule"))
-    stop("Value must be a CombinationRule")
-  env_poke(RuleSet,name,value)
+     stop("Value must be a CombinationRule")
+   RuleSet[[name]] <- value
 }
-availableRules <- function() names(RuleSet)
+availableRules <- function() {
+  names(RuleSet)
+}
 
 setRule("Compensatory",CompensatoryRule)
 setRule("CompensatoryGR",CompensatoryGRRule)
@@ -525,5 +528,6 @@ setRule("NoisyAnd",NoisyAndRule)
 setRule("NoisyOr",NoisyOrRule)
 setRule("Center",CenterRule)
 setRule("Dirichlet",DirichletRule)
+
 
 

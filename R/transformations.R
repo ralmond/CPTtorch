@@ -2,19 +2,19 @@
 ## Primitive Link functions
 
 as_torch_tensor <- function (x) {UseMethod("as_torch_tensor")}
-as_torch_tensor.numeric <- function(x) torch_tensor(x)
-as_torch_tensor.torch_tensor <- function(x) x
+as_torch_tensor.numeric <- function(x) {torch_tensor(x,dtype=torch_float())}
+as_torch_tensor.torch_tensor <- function(x) {x}
 
 
-logit <- function (p) log(p/(1-p))
+logit <- function (p) {log(p/(1-p))}
 #torch_logit
-invlogit <- function (x) 1/(1+exp(-x))
+invlogit <- function (x) {1/(1+exp(-x))}
 #torch_sigmoid
-linvlogit <- function (x) log(1/(1+exp(-x)))
-probit <- function (p) qnorm(p)
-invprobit <- function (x) qnorm(x)
+linvlogit <- function (x) {log(1/(1+exp(-x)))}
+probit <- function (p) {qnorm(p)}
+invprobit <- function (x) {qnorm(x)}
 
-logsumexp <- function (x) log(sum(exp(x)))
+logsumexp <- function (x) {log(sum(exp(x)))}
 
 torch_simplexify_ <- function (x,dim=-1L) {
   cpt <- x$abs_()
@@ -38,22 +38,30 @@ softmax <- function (x) {
   else
     m %//% sum(m)
 }
-lsoftmax <- function(x) log(softmax(x))
+lsoftmax <- function(x) {log(softmax(x))}
 
-cloglog <- function(p) log(-log(1-p))
-torch_cloglog <- function (p) torch_neg(p)$add_(1)$log_()$neg_()$log_()
-invcloglog <- function (x) 1-exp(-exp(x))
-torch_invcloglog <- function (p) torch_exp(p)$neg_()$exp_()$neg_()$add_(1)
+cloglog <- function(p) {log(-log(1-p))}
+torch_cloglog <- function (p) {torch_neg(p)$add_(1)$log_()$neg_()$log_()}
+invcloglog <- function (x) {1-exp(-exp(x))}
+torch_invcloglog <- function (p) {torch_exp(p)$neg_()$exp_()$neg_()$add_(1)}
 
-ldiff <- function (v) c(v[1],log(diff(v)))
-torch_ldiff <- function(v) torch_cat(v[1],torch_diff(v)$log_())
-ecusum <- function (vv) cumsum(c(vv[1],exp(vv[-1])))
-torch_ecusum <- function (vv) torch_cat(vv[1],torch_exp(vv[2:-1]))$cumsum_()
+tcat <- function(v1,v2) {
+  if (length(dim(v1))==0L) v1 <- torch_reshape(v1,-1)
+  if (length(dim(v2))==0L) v2 <- torch_reshape(v2,-1)
+  torch_cat(list(v1,v2))
+}
 
-lldiff <- function (v) log(c(v[1],diff(v)))
-torch_ldiff <- function(v) torch_cat(v[1],torch_diff(v))$log_()
-eecusum <- function (vv) cumsum(exp(vv))
-torch_eecusum <- function (vv) torch_exp(vv)$cumsum_()
+ldiff <- function (v) {c(v[1],log(diff(v)))}
+torch_ldiff <- function(v) {tcat(v[1],torch_diff(v)$log_())}
+ecusum <- function (vv) {cumsum(c(vv[1],exp(vv[-1])))}
+torch_ecusum <- function (vv) {
+  torch_cumsum(tcat(vv[1],torch_exp(vv[2:-1])),1)
+}
+
+lldiff <- function (v) {log(c(v[1],diff(v)))}
+torch_lldiff <- function(v) {tcat(v[1],torch_diff(v))$log_()}
+eecusum <- function (vv) {cumsum(exp(vv))}
+torch_eecusum <- function (vv) {torch_cumsum(torch_exp(vv),1)}
 
 
 stickbreak <- function (p) {

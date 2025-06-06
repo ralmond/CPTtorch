@@ -1,3 +1,117 @@
 import("rlang")
 import("torch")
-exportPattern("^[[:alpha:]]+")
+
+export(as_torch_tensor)
+S3method(as_torch_tensor,numeric)
+S3method(as_torch_tensor,torch_tensor)
+
+export(logit,invlogit,linvlogit,probit,invprobit,logsumexp)
+export(torch_simplexify,torch_simplexify_)
+export("%//%",softmax,lsoftmax,cloglog,torch_cloglog,
+       invcloglog,torch_invcloglog,ldiff,torch_ldiff,
+       ecusum,torch_ecusum,lldiff,torch_lldiff,
+       eecusum,torch_eecusum,stickbreak,invstickbreak,
+       torch_invstickbreak, sumrootk, torch_sumrootk,
+       prodq, torch_prodq, prod_1,torch_prod_1,
+       torch_pnorm,torch_qnorm)
+
+export(getTorchOp, getTorchSummaryOp, getZeroOp, getTorchUnaryOp,
+       getTorchVectorOp)
+
+export(guessmat,torch_guessmat,slipmat,torch_slipmat)
+
+export(projectOp,torch_tensor)
+exportMethods(projectOp)
+export("%^+%","%^-%","%^*%","%^/%")
+export(marginalize)
+exportMethods(marginalize)
+export(genMMt,genMMt.matrix,genMMt.tt,genMMtQ,genMMtQ.matrix,genMMtQ.tt)
+exportMethods(genMMt,genMMtQ)
+
+export(PType,availablePTypes,isPType,
+       pTypeDim,setpTypeDim,whichUsed,"whichUsed<-")
+S3method(isPType,default)
+export("pMat2pVec","pMat2pVec10","pMat2rowlist","pMat2collist",
+       "list2vec","pVec2pMat","pVec2pMat10",vec2rowlist,
+       vec2collist)
+
+
+export(checkParam,natpar2Rvec,Rvec2natpar,
+       natpar2tvec,tvec2natpar,
+       getZero,defaultParameter,
+       defaultParameter10)
+S3method(defaultParameter,PType)
+S3method(checkParam,default)
+S3method(checkParam,PType)
+S3method(as.array,numeric)
+S3method(getZero,character)
+
+
+S3method(checkParam,real)
+S3method(natpar2Rvec,real)
+S3method(Rvec2natpar,real)
+S3method(natpar2tvec,real)
+S3method(tvec2natpar,real)
+S3method(getZero,real)
+
+S3method(checkParam,pos)
+S3method(natpar2Rvec,pos)
+S3method(Rvec2natpar,pos)
+S3method(natpar2tvec,pos)
+S3method(tvec2natpar,pos)
+S3method(getZero,pos)
+
+
+S3method(checkParam,unit)
+S3method(natpar2Rvec,unit)
+S3method(Rvec2natpar,unit)
+S3method(natpar2tvec,unit)
+S3method(tvec2natpar,unit)
+S3method(getZero,unit)
+
+
+S3method(checkParam,pVec)
+S3method(natpar2Rvec,pVec)
+S3method(Rvec2natpar,pVec)
+S3method(natpar2tvec,pVec)
+S3method(tvec2natpar,pVec)
+S3method(getZero,pVec)
+
+
+S3method(checkParam,cpMat)
+S3method(natpar2Rvec,cpMat)
+S3method(Rvec2natpar,cpMat)
+S3method(natpar2tvec,cpMat)
+S3method(tvec2natpar,cpMat)
+S3method(getZero,cpMat)
+
+S3method(natpar2Rvec,const)
+S3method(Rvec2natpar,const)
+S3method(natpar2tvec,const)
+S3method(tvec2natpar,const)
+S3method(getZero,const)
+
+
+S3method(checkParam,incrK)
+S3method(natpar2Rvec,incrK)
+S3method(Rvec2natpar,incrK)
+S3method(natpar2tvec,incrK)
+S3method(tvec2natpar,incrK)
+S3method(getZero,incrK)
+
+
+export(effectiveTheta,effectiveTheta10,buildpTheta10,
+       as_Tvallist)
+export(CombinationRule,RuleASB,RuleBSA,RuleBAS,RuleConstB,RuleConstA)
+export(getRule,setRule,availableRules)
+export(CompensatoryRule,CompensatoryGRRule,ConjunctiveRule,
+       DisjunctiveRule,NoisyAndRule,NoisyOrRule,CenterRule,
+       DirichletRule)
+
+
+export(CPT_Link,getLink,setLink,availableLinks)
+export(PotentialLink,StepProbsLink,DifferenceLink,
+       SoftmaxLink,GradedResponseLink,PartialCreditLink,
+       GaussianLink,SlipLink)
+
+export(CPT_Model)

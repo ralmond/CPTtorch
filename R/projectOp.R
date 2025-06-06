@@ -38,9 +38,9 @@ setMethod("projectOp",c("array","array"), function (m1,m2,op="+") {
 
 
 "%^+%" <- function (m1,m2) projectOp(m1,m2,"+")
-"%^-%" <- function (m1,m2) projectOp(m1,-m2,"+")
+"%^-%" <- function (m1,m2) projectOp(m1,m2,"-")
 "%^*%" <- function (m1,m2) projectOp(m1,m2,"*")
-"%^/%" <- function (m1,m2) projectOp(m1,1/m2,"*")
+"%^/%" <- function (m1,m2) projectOp(m1,m2,"/")
 
 setMethod("projectOp",c("torch_tensor","torch_tensor"),
   function (m1,m2,op="+") {

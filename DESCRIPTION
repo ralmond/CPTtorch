@@ -23,7 +23,7 @@ URL: http://pluto.coe.fsu.edu/RNetica
 Depends: 
     methods, torch, R6,
     R (>= 3.5.0)
-Imports: stats, utils, dplyr, rlang
+Imports: stats, utils, dplyr, rlang, purrr
 Suggests: 
     ggplot2,
     lattice,
