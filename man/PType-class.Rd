@@ -43,9 +43,9 @@ isPtype(obj)
 \section{Extends and Extensions}{
 
   The PType class is implemented as an S3 class which class
-  \code{c(pType, "PType")} were \code{pType} is one of the subclass types
-  listed in the \squote{Available Subclasses} section listed below (or
-  returned by \code{availablePTypes()}.  While the \dquote{PType} class
+  \code{c(pType, "PType")} where \code{pType} is one of the subclass types
+  listed in the \sQuote{Available Subclasses} section listed below (or
+  returned by \code{availablePTypes()}.  While the \dQuote{PType} class
   takes care of the common methods (particularly dealing with
   dimensions, and used values) the subclasses take care of checking for
   used values, transformations between natural and real parameters and
@@ -66,7 +66,7 @@ isPtype(obj)
       values in the matrix are used parameters), or a logical matrix
       the same size of the parameter indicating which values of the
       matrix are useful parameters and which are ignored. See
-      \code{\link{pMat2pVec}}.} 
+      \code{\link{pMat2pVec}}.}
   }
 
   Note that the class attribute is compound, with the first entry being
@@ -87,13 +87,13 @@ isPtype(obj)
     \item{\link{setpTypeDim}}{\code{signature(pType,J=1L,S=2L^J,K=1L)}:
       This function evaluates the \code{exprdim} expression,
       substituting in the supplied values for \code{J}, \code{S} and
-      \code{K}. 
+      \code{K}.
     }
   }
 
   This next collection of generic functions is generally implemented by
   the subclass, so will have slightly different behavior.
-  
+
   \describe{
    \item{\link{checkParam}}{\code{signature(pType,par)}: Returns true if
      \code{par} is a legal value for the parameter.}
@@ -114,14 +114,14 @@ isPtype(obj)
   example, any number is valid for \dQuote{real}, only positive numbers
   for \dQuote{pos} and only numbers between 0 and 1 for \dQuote{unit}.
   Some of the other parameter types have more complex constraints, for
-  example the values must be increasing for \dquote{incrK} parameters
-  and must sum to 1 for \dquote{pVec} parameters.  The
+  example the values must be increasing for \dQuote{incrK} parameters
+  and must sum to 1 for \dQuote{pVec} parameters.  The
   \code{\link{checkParam}} function checks if a value is valid.
 
   Let \eqn{J} be the number of parent variables, \eqn{S} the number of
   possible combinations of the parent states (the number of rows of the
   final CPT) and \eqn{K} equal the number of states of the child
-  variable (the number of columns of the final matrix).  A compensatory 
+  variable (the number of columns of the final matrix).  A compensatory
   \code{\linkS4class{CombinationRule}} takes a \eqn{S \times J} matrix of
   effective thetas, \eqn{\Theta}, a \eqn{K'' \times J} matrix of slopes
   (discriminations), \eqn{A}, and a \eqn{K' \times 1} column vector of
@@ -163,7 +163,7 @@ isPtype(obj)
   parameter vector and \code{\link{Rvec2natpar}} restores the matrix to
   the right shape (with arbitrary values in the unused cells).
 
-  Finally, the function \code{\link{defaultValues}}} creates a parameter
+  Finally, the function \code{\link{defaultValues}} creates a parameter
   object of the necessary shape (assuming te dimensions have been
   finalized) which has a valid value.  The function
   \code{\link{getZero}} returns a default value, and the default method
@@ -175,24 +175,24 @@ isPtype(obj)
   The following subclasses are avaiable.
 
   \describe{
-    \item{\dquote{real}}{:  Values are any real number.  Uses the
+    \item{\dQuote{real}}{:  Values are any real number.  Uses the
       identity transformation in calculating the real vector.}
-    \item{\dquote{pos}}{:  Values are any positive number.  Uses the log
+    \item{\dQuote{pos}}{:  Values are any positive number.  Uses the log
       transformation in calculating the real vector.}
-    \item{\dquote{unit}}{:  Values are between 0 and 1.  Uses the logit
+    \item{\dQuote{unit}}{:  Values are between 0 and 1.  Uses the logit
       transformation in calculating the real vector.}
-    \item{\dquote{pVec}}{:  This is a vector representing a probability
+    \item{\dQuote{pVec}}{:  This is a vector representing a probability
       distribution, with all values non-negative and the sum equals 1.  It
-      uses the log transformation in going to real values and te
-    \code{\link{softmax}} in going back to the natural parameter space.}
-    \item{\dquote{cpMat}}{: A conditional probability matrix in which
+      uses the log transformation in going to real values and the
+      \code{\link{softmax}} in going back to the natural parameter space.}
+    \item{\dQuote{cpMat}}{: A conditional probability matrix in which
       each row must sum to one.  It applies the softmax to the rows on
       the inverse transformation.}
-    \item{\dquote{incrK}}{:  A matrix whose values are increasing in the
+    \item{\dQuote{incrK}}{:  A matrix whose values are increasing in the
       columns.  This is particularly useful for situation in which
       difficulty parameters are expected to be increasing.  It uses the
       \code{\link{ldiff}} transformation to get to a real vector.}
-    \item{\dquote{const}}{:  A special case in which the parameter is to
+    \item{\dQuote{const}}{:  A special case in which the parameter is to
       be considered fixed wrt optimization.  It allows any value and
       and both \code{natpar2Rvec.const} and \code{Rvec2natpar.const}
       return a zero length vector.}

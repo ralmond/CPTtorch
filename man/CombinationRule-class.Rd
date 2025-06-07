@@ -59,9 +59,9 @@
 
   \describe{
     \item{aType}{The type of the A parameter.  This can be set to a
-      \code{\linkS4class{PType} object.}
+      \code{\linkS4class{PType}} object.}
     \item{bType}{Type type of the B parameter.  This can be set to a
-      \code{\linkS4class{PType} object. }
+      \code{\linkS4class{PType}} object. }
     \item{aMat}{The A parameter as a tensor (either \eqn{K \times J} or
       \eqn{K \times 1} depending on the rule type.  Note that this is in
       the natural scale.}
@@ -162,7 +162,7 @@ available.
 \code{ASBRule}.
 
 \deqn{\tilde{\theta} = \bigoplus_{J} (\Theta \mathbin{ⓐ} \bold{A})  \mathbin{ⓑ} \bold{B}.}
- 
+
 This is the standard order.  \bold{A} should have dimension \eqn{J
   \times K} and \bold{B} should have dimension \eqn{K \times 1}.  The
   \code{CompensatoryRule} is an example of this type of rule.
@@ -170,7 +170,7 @@ This is the standard order.  \bold{A} should have dimension \eqn{J
 \code{BSARule}.
 
 \deqn{\tilde{\theta} = \bigoplus_{J} (\Theta \mathbin{ⓑ} \bold{B}) \mathbin{ⓐ} \bold{A} .}
- 
+
 This is a reversed (bias first) order.  \bold{A} should have dimension \eqn{K
   \times 1} and \bold{B} should have dimension \eqn{J \times K}. The
   \code{ConjunctiveRule} and \code{DisjunctiveRule} are examples, with ⓑ
@@ -181,7 +181,7 @@ This is a reversed (bias first) order.  \bold{A} should have dimension \eqn{K
 \code{BASRule}.
 
 \deqn{\tilde{\theta} = \bigoplus_{J} ((\Theta \mathbin{ⓑ} \bold{B}) \mathbin{ⓐ} \bold{A}) .}
- 
+
   In this rule, the summation step is doen last.  Both \bold{A} and
   \bold{B} should have dimensions \eqn{K \times J}.  The
   \code{NoisyAndRule} and \code{NoisyOrRule} rules are examples with with ⓑ
@@ -194,7 +194,7 @@ the same as the \code{CombinationRule}), \code{BSARule} and
 \code{$aop}, \code{$bop} and \code{$summary} fields.  The forward method
 can be overridden either to create another kind of rule (e.g., the
 constant rules) or to produce a more efficient implementation (see the
-\code{CompensatoryRule}). 
+\code{CompensatoryRule}).
 
 }
 \section{Parameters}{
@@ -235,7 +235,7 @@ constant rules) or to produce a more efficient implementation (see the
   optimized or should be randomly sampled in a Monte Carlo algorithm.
 
   Internally, the algorithms assume that the child variable is ordered
-  from the lowest state to the highest state.  If the 
+  from the lowest state to the highest state.  If the
   If the field \code{$high2low} is set to true, then the parameters have
   their columns reversed in the \code{$forward} method.
 
@@ -264,7 +264,7 @@ constant rules) or to produce a more efficient implementation (see the
   The \code{$setDim()} function updates the values of the three
   constants.  If the size of the parameter changes, it is reset to its
   default value.  Note that \code{$setParents()} will also call
-  \code{$setDim()}. 
+  \code{$setDim()}.
 
   Note that dimensions \code{J} and \code{K} can be replaced with
   \code{1}.  The tensor will the be broadcast (or replicated over the
@@ -273,7 +273,7 @@ constant rules) or to produce a more efficient implementation (see the
   for each column of the output.  If instead a parameter with dimension
   \code{c(1,J)} is used, then the same discrimination parameters will be
   used for each row of the output.
-  
+
 }
 \section{Inner Q-matrix}{
 
@@ -355,7 +355,7 @@ constant rules) or to produce a more efficient implementation (see the
     rule1$aMat <- torch_tensor(matrix(c(.8,1.1),1,2))
     rule1$bMat <- torch_tensor(matrix(c(1,-1),1,2))
   }
-  
+
 }
 \section{Superclasses and Subclasses}{
 
@@ -423,7 +423,7 @@ hyper-Dirichlet model.
   \code{\link{setRule}()} function.
 
   As an example, here is the implementation for the
-  \code{ConjunctiveRule}. 
+  \code{ConjunctiveRule}.
 
   \preformatted{
     ConjunctiveRule <- nn_module(
@@ -437,7 +437,7 @@ hyper-Dirichlet model.
         btype=PType("real",c(K,J))
      )
   }
-  
+
 
 }
 \author{Russell Almond}

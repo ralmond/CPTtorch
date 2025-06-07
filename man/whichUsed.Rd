@@ -73,8 +73,8 @@ whichUsed(pType) <- value
   a conference talk:
 
   Almond, R. G. (2018). Inner and Outer Q-matrixes for Multi-step
-  Problems. \em{Annual Meeting of the American Educational Research
-    Association.} 
+  Problems. \emph{Annual Meeting of the American Educational Research
+    Association.}
 
   Unfortunately, while slides exist for this talk, there is no written
   paper.
@@ -97,7 +97,7 @@ whichUsed(pType) <- value
 ##--	or standard data sets, see data().
 
 ## The function is currently defined as
-function (pType) 
+function (pType)
 {
     return(pType$used)
   }

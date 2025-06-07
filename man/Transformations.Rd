@@ -48,17 +48,17 @@ softmax(x)
   the natural parameter space to \eqn{\mathbb{R}^n} and the other
   reverses the transformation.
 
-  \em{Real Parameters.}  \code{identity()}--\code{identity()}.
+  \emph{Real Parameters.}  \code{identity()}--\code{identity()}.
   If the natural space of the parameter is the
   real line, the correct transformation and its inverse are the
   \code{\link[base]{identity}()} function.
 
-  \em{Positive Parameters.}  \code{log()}--\code{exp()}.  If the
+  \emph{Positive Parameters.}  \code{log()}--\code{exp()}.  If the
   parameter must be strictly greater than zero, then logs and antilogs
   satisfy the criteria.  Again, the functions from the `base` package
   are satisfactory.
 
-  \em{Unit Parameters (1).} \code{logit()}--\code{invlogit()}.  There are
+  \emph{Unit Parameters (1).} \code{logit()}--\code{invlogit()}.  There are
   several possible transformations that fit the bill.  The logistic
   function and its inverse are commonly used.  [Note that the 1.7 scale
   factor is not included here.]
@@ -67,26 +67,26 @@ softmax(x)
 
   \deqn{\mathrm{invlogit} (x) = \frac{1}{1+e^{x}}}
 
-  \em{Unit Parameters (2).} \code{cloglog()}--\code{invcloglog()}.
+  \emph{Unit Parameters (2).} \code{cloglog()}--\code{invcloglog()}.
   Another possible transformation is the complementary log-log.
 
   \deqn{\mathrm{cloglog} (p) = \log\left(-\log(1-p)\right)}
 
   \deqn{\mathrm{invcloglog} (x) = 1-\exp(-\exp(x))}
 
-  \em{Increasing Real Numbers}.  \code{ldiff()}--\code{ecusum()}.  If
+  \emph{Increasing Real Numbers}.  \code{ldiff()}--\code{ecusum()}.  If
   the series is strictly increasing, the differences must be strictly
   positive.  So the transformed parameter is the first element, followed
   by the log of the differences.  The inverse takes antilogs and the
   calculates the cumulative sum.
 
-  \em{Increasing Positive Real Numbers}.
-  \code{lldiff()}--\code{eecusum()}. 
+  \emph{Increasing Positive Real Numbers}.
+  \code{lldiff()}--\code{eecusum()}.
   The difference between this pair and the previous one is that
   the log of the initial value is also taken so that the it will be
   strictly positive as well.
 
-  \em{Unit Simplex (1).}
+  \emph{Unit Simplex (1).}
   \code{logit(stickbreak(p))}--\code{invstickbreak(invlogit(x))}.
   A unit simplex is a vector of non-negative numbers such that
   \eqn{\sum_k p_k =1}.  Start with a stick of unit length and at each
@@ -102,19 +102,19 @@ softmax(x)
   constrained to the unit interval, so an additional logit is need to
   get to the real numbers.
 
-  \em{Unit Simplex(2)}. \code{log(p)}--\code{softmax(x}}.  The
+  \emph{Unit Simplex(2)}. \code{log(p)}--\code{softmax(x)}.  The
   cannoncial distribution over a simplex is the Dirichlet distribution.
   One of the better ways of generating a Dirichlet is to generate
   \eqn{K} gamma variates with the same scale parameter (and the shape
   paremeter equal to the corresponding Dirichlet parameter) and then
   normalize the vector by dividing by the sum.
-  
+
 }
 \value{
 
   The following transformations go from a restricted parameter space to
   the real numbers: \code{identity()}, \code{log()}, \code{logit()},
-  \code{cloglog()}, \code{ldiff()}, and \code{\lldif()}.
+  \code{cloglog()}, \code{ldiff()}, and \code{lldif()}.
 
 
   The domains of the inverse transformations are as follows:
@@ -127,17 +127,17 @@ softmax(x)
     \item{\code{eecumsum()}.}{Increasing vector of positive real
       numbers.}
     \item{\code{softmax()}.}{Unit simplex.}
+  }
 
-    The function \code{stickbreak()} takes values on the unit simplex
-    and returns a vector with one few elements of values on the unit
-    interval.  The funciton \code{invstickbreak()} does the reverse.
-    
+  The function \code{stickbreak()} takes values on the unit simplex
+  and returns a vector with one few elements of values on the unit
+  interval.  The funciton \code{invstickbreak()} does the reverse.
 
 }
 \references{
   Documentation for the stick break algorithm can be found, among other
   places, in the manual for the `nimble` package at
-  \url{https://r-nimble.org}. 
+  \url{https://r-nimble.org}.
 }
 \author{Russell Almond}
 \note{

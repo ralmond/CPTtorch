@@ -8,7 +8,7 @@
   This function takes the effective theta tensor, the output of a
   \code{\link{CombinationRule}} and converts it into a conditional
   probability table.  This may require an additional \code{linkScale}
-  parameter. 
+  parameter.
 
 }
 \section{Public Fields}{
@@ -38,7 +38,7 @@
   for use with the normal quantile mapping of variable states to real
   values, but setting \code{\var{link}$D <- torch_tensor(1.0)} will
   eleiminate it for compatability with the other common
-  parameterization.) 
+  parameterization.)
 
 }
 \section{Active Fields}{
@@ -74,9 +74,9 @@
     \item{initialize}{\code{signature(\var{nstates}:int,\var{guess}=NA,
       \var{slip}=NA, \var{high2low}=FALSE)} initializes
       the link. }
-    \item{leakmat}{\code{signature()}{Either returns a leaking mattrix
-	if the slip or guess parameter is set, or returns \code{NULL} if
-	neither were set.}
+    \item{leakmat}{\code{signature()}. Either returns a leaking mattrix
+    	if the slip or guess parameter is set, or returns \code{NULL} if
+    	neither were set.}
     \item{forward}{\code{signature(\var{input}:torch_tensor)} this does
       the calculation.  The default method calls the \code{$link}
       function, multiplies it by the \code{$leakmat} matrix and then
@@ -88,7 +88,7 @@
 
   Although most link functions do not require additional parameters, the
   \code{GaussianLink} requires a residual standard deviation.
-  \code{$sType} field is set to a \code{\link{PType}} object describing 
+  \code{$sType} field is set to a \code{\link{PType}} object describing
   the expected domain and length of the scale parameter.
 
   As with the \code{\linkS4class{CombinationRule}} parameters there are two
@@ -98,7 +98,7 @@
   \code{$linkScale} is the residual standard deviation on the natural
   scale (positive real numbers) and \code{$sVec} is the log of the
   standard deviation. Generally, users should set the natural version of
-  the parameter. 
+  the parameter.
 
 }
 \section{Effective Theta Dimensions}{
@@ -167,7 +167,7 @@
   If both guessing and slipping parameters are applied, the resulting
   matrix is \eqn{\mathbf{G}\mathbf{E}}, that is first the guessing logic
   is applied and then the slipping.
-  
+
   This covers the most common cases while using only one parameter for
   guessing and one for slipping.  These are the \code{link$guess} and
   \code{link$slip} parameters, which should have the value \code{NA} if
@@ -180,12 +180,12 @@
   [Note, mathematically, \code{$leakmat()} could return the identity
   matrix if no parameters are set, but skipping the multiplication
   should be faster.]
-  
+
   As with the scale parameter, the \code{$slip} and \code{$guess} are
   active fields with the true \code{\link[torch]{nn_parameter}} objects
   in the \code{$slipP} and \code{$guessP} fields.  As the parameters are
   constrained to be in the interval $[0,.5]$, the actual values stored are
-  $\mathord{logit](2g)$ and $\mathord{logit](2e)$.
+  the logits of the slipping and guessing parameters.
 
 }
 \section{Algorithms}{

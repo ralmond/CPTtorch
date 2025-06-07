@@ -76,7 +76,7 @@
       information about the parent configurations.}
     \item{getETFrame}{\code{signature()}. Get the effective theta table
       from the \code{$rule} and displays it as a data frame with
-      additional information about the parent states.}}
+      additional information about the parent states.}
 
   }
 }

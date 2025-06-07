@@ -9,7 +9,7 @@
   fits the restrictions defined in the  \code{\linkS4class{PType}}.  If
   all check pass, then it returns \code{TRUE}, otherwise it returns a
   character scaler describing the failed check.
-  
+
 }
 \usage{
 checkParam(pType, par)
@@ -33,10 +33,10 @@ checkParam(pType, par)
 
   Returns a character value describing a failed check if one check
   fails.  If a logical value is needed, use \code{isTRUE(checkParam())}.
-  
+
 }
 \author{Russell Almond}
-\section{Writing Methods for New Subclasses.}
+\section{Writing Methods for New Subclasses.}{
 
   The implementation the inheritance system of method dispatch to
   partition task of checking the parameter.  Recall that the class of a
@@ -71,7 +71,7 @@ checkParam(pType, par)
 ##--	or standard data sets, see data().
 
 ## The function is currently defined as
-function (pType, par) 
+function (pType, par)
 UseMethod("checkParam")
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
