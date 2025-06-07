@@ -278,9 +278,18 @@ tvec2natpar.incrK <- function(pType,Rvec) {
   if (pType$high2low) natp <- torch_flipud(natp)
   natp
 }
-getZero.incrK <- function(pType) {NA}
+getZero.incrK <- function(pType) {0}
 
 
+defaultParameter.incrK <- function(pType) {
+  zero <- pType$zero
+  if (is.null(zero)) zero <- getZero(pType)
+  if (is.numeric(pTypeDim(pType))) {
+    zero <- array(zero,pTypeDim(pType))
+    zero <- sweep(zero,1,0:(nrow(zero)-1),"+")
+  }
+  zero
+}
 
 
 

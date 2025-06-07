@@ -55,9 +55,9 @@ as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=FAL
 CombinationRule <- torch::nn_module(
     classname="CombinationRule",
 #    inherit = nn_Module,
-    aop = torch_mul,
-    summary = torch_sum,
-    bop = torch_add,
+    aop = "torch_mul",
+    summary = "torch_sum",
+    bop = "torch_add",
     aVec = NULL,
     bVec = NULL,
     setParents = function(parents) {
@@ -88,8 +88,12 @@ CombinationRule <- torch::nn_module(
       self$setParents(parents)
       self$QQ <- QQ
       self$high2low <- high2low
-      self$aMat <- defaultParameter10(private$atype)
-      self$bMat <- defaultParameter10(private$btype)
+      if (!is.null(self$aType)) {
+        self$aMat <- defaultParameter10(private$atype)
+      }
+      if (!is.null(self$bType)) {
+        self$bMat <- defaultParameter10(private$btype)
+      }
     },
     forward = function() {
       amat <- self$aMat
@@ -99,25 +103,23 @@ CombinationRule <- torch::nn_module(
         amat <- amat$flipud_()
         bmat <- bmat$flipud_()
         if (!isTRUE(qmat))
-          qq <- qmat$flipud_()
+          qmat <- qmat$flipud_()
       }
       if (!isTRUE(qmat)) {
-        self$bop(
-                 genMMtQ(self$pTheta,amat,qmat,
-                         self$aop,self$summary),
-                 bmat$t_())
+        exec(self$bop,
+             genMMtQ(self$pTheta,amat,qmat,
+                     self$aop,self$summary),
+             bmat$t_())
       } else {
-        self$bop(
-                 genMMt(self$pTheta,amat,
-                        self$aop,self$summary),
-                 bmat$t_())
+        exec(self$bop,
+             genMMt(self$pTheta,amat,
+                    self$aop,self$summary),
+             bmat$t_())
       }
     },
     getETframe = function () {
-      if (is.null(private$cache))
-        private$cache <- self$forward()
-      et <- private$cache
-      data.frame(cartesian_prod(self$pNames),et=as_array(et))
+      data.frame(cartesian_prod(self$pNames),
+                 et=as_array(self$et))
     },
     private=list(
         atype=PType("real",c(K,J)),
@@ -197,7 +199,7 @@ CombinationRule <- torch::nn_module(
         et = function() {
           if (is.null(private$cache))
             private$cache <- self$forward()
-          torch_reshape(private$cache,c(sapply(self$pNames,length),-1))
+          private$cache
         },
         et_p = function(value) {
           if (missing(value))
@@ -214,9 +216,9 @@ RuleASB <- CombinationRule
 RuleBSA <- torch::nn_module(
     classname="RuleBSA",
     inherit = CombinationRule,
-    aop =torch_mul,
-    summary =torch_max,
-    bop = torch_sub,
+    aop ="torch_mul",
+    summary ="torch_amax",
+    bop = "torch_sub",
     forward = function() {
       amat <- self$aMat
       qmat <- self$QQ
@@ -227,15 +229,15 @@ RuleBSA <- torch::nn_module(
         qq <- qmat$flipud_()
       }
       if (!isTRUE(qmat)) {
-        self$aop(
-                 genMMtQ(self$pTheta,bmat,qmat,
-                         self$bop,self$summary),
-                 amat$t_())
+        exec(self$aop,
+             genMMtQ(self$pTheta,bmat,qmat,
+                     self$bop,self$summary),
+             amat$t_())
       } else {
-        self$aop(
-                 genMMt(self$pTheta,bmat,
-                        self$bop,self$summary),
-                 amat$t_())
+        exec(self$aop,
+             genMMt(self$pTheta,bmat,
+                    self$bop,self$summary),
+             amat$t_())
       }
     },
     private=list(
@@ -245,7 +247,7 @@ RuleBSA <- torch::nn_module(
     active = list(
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$btype))
-          if (!is.logical)
+          if (!is.logical(value))
             abort("The QQ field must be a logical matrix or TRUE")
           whichUsed(private$btype) <- value
           invisible(self)
@@ -253,12 +255,13 @@ RuleBSA <- torch::nn_module(
     )
 )
 
+
 RuleBAS <- torch::nn_module(
     classname="RuleBAS",
     inherit = CombinationRule,
-    aop = torch_mul,
-    summary = torch_max,
-    bop =  torch_sub,
+    aop = "torch_mul",
+    summary = "torch_amax",
+    bop =  "torch_sub",
     forward = function() {
       amat <- self$aMat
       qmat <- self$QQ
@@ -268,21 +271,17 @@ RuleBAS <- torch::nn_module(
         bmat <- bmat$flipud_()
         qq <- qmat$flipud_()
       }
-      if (!isTRUE(qmat)) {
-        tmp <- self$aop(self$bop(self$pTheta,
-                                 bmat$reshape(1,dim(bmat))),
-                        amat$reshape(1,dim(amat)))
-        result <- torch_empty(private$SJK[c("S","K")])
-        for (kk in 1L:private$SJK["K"])
-          result[,kk] <- self$summary(tmp[,which(qmat[kk,]),kk],2)
-        result
+      tmp <- exec(self$aop,
+                  exec(self$bop,self$pTheta$reshape(c(dim(self$pTheta),1)),
+                       bmat$reshape(c(1,dim(bmat)))),
+                  amat$reshape(c(1,dim(amat))))
+      if (isTRUE(qmat)) {
+        return(exec(self$summary,tmp,2))
       } else {
-        self$summary(
-                 self$aop(
-                          self$bop(self$pTheta,
-                                        bmat$reshape(1,dim(bmat))),
-                          amat$reshape(1,dim(amat))),
-                 2)
+        result <- torch_empty(private$SJK[c("S","K")])
+        for (kk in 1L:nrow(result))
+          result[,kk] <- exec(self$summary,tmp[,which(qmat[kk,]),kk],2)
+        result
       }
     },
     private=list(
@@ -292,7 +291,7 @@ RuleBAS <- torch::nn_module(
     active = list(
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$btype))
-          if (!is.logical)
+          if (!is.logical(value))
             abort("The QQ field must be a logical matrix or TRUE")
           whichUsed(private$btype) <- value
           whichUsed(private$atype) <- value
@@ -317,7 +316,7 @@ RuleConstB <- nn_module(
     ),
     active = list(
         aType=function(value) {
-          if (missing(value)) return (private$atype)
+          if (missing(value)) return (NULL)
           warning("A Type is ignored in ConstB Rules.")
           invisible(self)
         },
@@ -331,7 +330,7 @@ RuleConstB <- nn_module(
         },
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$btype))
-          if (!is.logical)
+          if (!is.logical(value))
             abort("The QQ field must be a logical matrix or TRUE")
           whichUsed(private$btype) <- value
           invisible(self)
@@ -352,7 +351,7 @@ RuleConstA <- nn_module(
     ),
     active = list(
         bType=function(value) {
-          if (missing(value)) return (private$btype)
+          if (missing(value)) return (NULL)
           warning("B Type is ignored in ConstA Rules.")
           invisible(self)
         },
@@ -366,7 +365,7 @@ RuleConstA <- nn_module(
         },
         QQ=function(value) {
           if (missing(value)) return (whichUsed(private$atype))
-          if (!is.logical)
+          if (!is.logical(value))
             abort("The QQ field must be a logical matrix or TRUE")
           whichUsed(private$atype) <- value
           invisible(self)
@@ -378,9 +377,9 @@ RuleConstA <- nn_module(
 CompensatoryRule <- torch::nn_module(
     classname="CompensatoryRule",
     inherit = RuleASB,
-    aop = torch_mul,
-    summary = torch_sumrootk,
-    bop = torch_sub,
+    aop = "torch_mul",
+    summary = "torch_sumrootk",
+    bop = "torch_sub",
     private=list(
         atype=PType("pos",c(K,J)),
         btype=PType("real",c(K,1)),
@@ -404,13 +403,15 @@ CompensatoryRule <- torch::nn_module(
         qq <- qmat$flipud_()
       }
       if (!isTRUE(qmat)) {
-        self$bop(
-                 genMMtQ(self$pTheta,amat,qmat,
-                         self$aop,self$summary),
-                 bmat$t_())
+        exec(self$bop,
+             genMMtQ(self$pTheta,amat,qmat,
+                     self$aop,self$summary),
+             bmat$t_())
       } else {
         ## Using built-in matrix multiplication should be faster
-        torch_addmm(bmat$neg()$t_(),self$pTheta,amat$t(),alpha=private$rootj)
+        ##torch_addmm(bmat$neg()$t_(),self$pTheta,amat$t(),alpha=private$rootj)
+        torch_add(bmat$neg()$t_(),
+                  torch_matmul(self$pTheta,amat$t())$mul_(private$rootj))
       }
     }
 )
@@ -429,9 +430,9 @@ CompensatoryGRRule <- torch::nn_module(
 ConjunctiveRule <- torch::nn_module(
     classname="ConjunctiveRule",
     inherit = RuleBSA,
-    bop = torch_sub,
-    summary = torch_min,
-    aop = torch_mul,
+    bop = "torch_sub",
+    summary = "torch_amin",
+    aop = "torch_mul",
     private=list(
         atype=PType("pos",c(K,1)),
         btype=PType("real",c(K,J))
@@ -441,9 +442,9 @@ ConjunctiveRule <- torch::nn_module(
 DisjunctiveRule <- torch::nn_module(
     classname="DisjunctiveRule",
     inherit = RuleBSA,
-    bop = torch_sub,
-    summary = torch_max,
-    aop = torch_mul,
+    bop = "torch_sub",
+    summary = "torch_amax",
+    aop = "torch_mul",
     private=list(
         atype=PType("pos",c(K,1)),
         btype=PType("real",c(K,J))
@@ -454,9 +455,9 @@ DisjunctiveRule <- torch::nn_module(
 NoisyAndRule <- torch::nn_module(
     classname="NoisyAndRule",
     inherit = RuleBAS,
-    bop = torch_gt,
-    summary = torch_prod,
-    aop = \(e1,e2) torch_pow(e2,e1),
+    bop = "torch_gt",
+    summary = "torch_prod",
+    aop = "torch_mul",
     private=list(
         atype=PType("unit",c(K,J)),
         btype=PType("real",c(K,J))
@@ -466,9 +467,9 @@ NoisyAndRule <- torch::nn_module(
 NoisyOrRule <- torch::nn_module(
     classname="NoisyAndRule",
     inherit = RuleBAS,
-    bop = torch_le,
-    summary = torch_prod_1,
-    aop = \(e1,e2) torch_pow(e2,e1),
+    bop = "torch_le",
+    summary = "torch_prod_1",
+    aop = "torch_mul",
     private=list(
         atype=PType("unit",c(K,J)),
         btype=PType("real",c(K,J))
@@ -483,9 +484,9 @@ NoisyOrRule <- torch::nn_module(
 CenterRule <- torch::nn_module(
     classname="CenterRule",
     inherit = RuleConstB,
-    prescale = identity,
-    summary = torch_mean,
-    postscale = identity,
+    prescale = "identity",
+    summary = "torch_mean",
+    postscale = "identity",
     private=list(
         atype=NULL,
         btype=PType("real",c(S,K))
@@ -495,9 +496,9 @@ CenterRule <- torch::nn_module(
 DirichletRule <- torch::nn_module(
     classname="DirichletRule",
     inherit = RuleConstB,
-    prescale = identity,
-    summary = torch_mean,
-    postscale = identity,
+    prescale = "identity",
+    summary = "torch_mean",
+    postscale = "identity",
     private=list(
         atype=NULL,
         btype=PType("real",c(S,K))
@@ -511,7 +512,7 @@ getRule <- function(name) {
   if (is(name,"CombinationRule")) return(name)
   RuleSet[[name]]
 }
-setRule = function(name,value) {
+setRule <- function(name,value) {
   if (!is(value,"CombinationRule"))
      stop("Value must be a CombinationRule")
    RuleSet[[name]] <- value

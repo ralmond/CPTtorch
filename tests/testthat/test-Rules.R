@@ -186,7 +186,7 @@ test_that("Rule et",{
   cr <- getRule("Compensatory")$new(as_Tvallist(c(3,4)),2)
 
   et <- cr$et
-  expect_equal(dim(et),c(3,4,2))
+  expect_equal(dim(et),c(12,2))
 
 
 })
@@ -290,48 +290,85 @@ test_that("RuleConstA forward",{
 
 
 test_that("CompensatoryRule",{
+  cr <- getRule("Compensatory")$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2)
+  cr$aMat <- as_torch_tensor(matrix(c(1,2,2,2),2,2,byrow=TRUE))
+  cr$bMat <- as_torch_tensor(matrix(c(0,10),2,1))
+  expt <- matrix(c(0,2,1,3,0,2,2,4),4,2)/sqrt(2)
+  expt[,2] <- expt[,2]-10
+  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
 
 })
 
 test_that("CompensatoryGRRule",{
+  cr <- getRule("CompensatoryGR")$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2)
+  cr$aMat <- as_torch_tensor(matrix(c(1,2),1,2,byrow=TRUE))
+  cr$bMat <- as_torch_tensor(matrix(c(0,10),2,1))
+  expt <- matrix(c(0,2,1,3,0,2,1,3),4,2)/sqrt(2)
+  expt[,2] <- expt[,2]-10
+  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
 
 })
 
 test_that("ConjunctiveRule",{
+  cr <- getRule("Conjunctive")$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2)
+  cr$aMat <- as_torch_tensor(matrix(c(1,2),2,1,byrow=TRUE))
+  cr$bMat <- as_torch_tensor(matrix(c(0,1,1,0),2,2))
+  expt <- matrix(c(-1,0,-1,0,-2,-2,0,0),4,2)
+  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
 
 })
 
 test_that("DisjunctiveRule",{
+  cr <- getRule("Disjunctive")$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2)
+  cr$aMat <- as_torch_tensor(matrix(c(1,2),2,1,byrow=TRUE))
+  cr$bMat <- as_torch_tensor(matrix(c(0,1,1,0),2,2))
+  expt <- matrix(c(0,0,1,1,0,2,0,2),4,2)
+  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
 
 })
 
 test_that("NoisyAndRule",{
+  cr <- getRule("NoisyAnd")$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2)
+  cr$aMat <- as_torch_tensor(matrix(c(.8,.9,.9,.9),2,2,byrow=TRUE))
+  cr$bMat <- as_torch_tensor(matrix(.5,2,2))
+  expt <- matrix(c(0,0,0,0,0,0,.72,.81),4,2,byrow=TRUE)
+  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
 
 })
 
 test_that("NoisyOrRule",{
+  cr <- getRule("NoisyOr")$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2)
+  cr$aMat <- as_torch_tensor(matrix(c(.8,.9,.9,.9),2,2,byrow=TRUE))
+  cr$bMat <- as_torch_tensor(matrix(.5,2,2))
+  expt <- matrix(c(.28,.19,1,1,1,1,1,1),4,2,byrow=TRUE)
+  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
 
 })
 
 test_that("CenterRule",{
+  cr <- getRule("Center")$new(as_Tvallist(c()),1)
+  cr$bMat <- as_torch_tensor(matrix(.5,1,1))
+  expect_equal(as.numeric(cr$et),.5,tolerance=.00001)
+  cr <- getRule("Center")$new(as_Tvallist(c(2)),1)
+  cr$bMat <- as_torch_tensor(matrix(c(-.5,.5),2,1))
+  expect_equal(as.numeric(cr$et),c(-.5,.5),tolerance=.00001)
 
 })
 
 test_that("DirichletRule",{
-
+  cr <- getRule("Dirichlet")$new(as_Tvallist(c(3)),2)
+  cr$bMat <- as_torch_tensor(matrix(c(8,2,5,5,2,8),3,2,byrow=TRUE))
+  expt <-matrix(c(8,2,5,5,2,8),3,2,byrow=TRUE)
+  expect_equal(as.matrix(cr$et),expt,tolerance=.00001)
 })
 
-test_that("getRule",{
-
+test_that("getRule setRule availableRules",{
+  expect_s3_class(getRule("Center"),"CenterRule")
+  setRule("Middle",getRule("Center"))
+  expect_s3_class(getRule("Middle"),"CenterRule")
+  expect_true("Middle" %in% availableRules())
 })
 
-test_that("setRule",{
-
-})
-
-test_that("availableRule",{
-
-})
 
 
 

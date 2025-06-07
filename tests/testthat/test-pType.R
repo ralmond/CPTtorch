@@ -434,7 +434,8 @@ test_that("natpar2tvec tvec2natpar incrK",{
 
 test_that("getZero defaultParameter incrK",{
   pt <- setpTypeDim(PType("incrK",dim=c(K,J)),K=3,J=2)
-  expect_true(is.na(getZero(pt)))
+  expect_equal(getZero(pt),0)
+  expect_equal(defaultParameter(pt),matrix(0:2,3,2))
 })
 
 

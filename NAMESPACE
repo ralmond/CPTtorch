@@ -98,6 +98,9 @@ S3method(Rvec2natpar,incrK)
 S3method(natpar2tvec,incrK)
 S3method(tvec2natpar,incrK)
 S3method(getZero,incrK)
+S3method(defaultParameter,incrK)
+export(defaultParameter.incrK)
+
 
 
 export(effectiveTheta,effectiveTheta10,buildpTheta10,

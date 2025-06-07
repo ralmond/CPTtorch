@@ -65,10 +65,10 @@ test_that("marginalize ten",{
                         sum((13:16)+.1), sum((17:20)+.1), sum((21:24)+.1)),
                       3,2),
                tolerance=.00001)
-  expect_equal(as.matrix(marginalize(arr,2,"max")),
+  expect_equal(as.matrix(marginalize(arr,2,torch_amax)),
                matrix(c(9:12,21:24)+.1,4,2),
                tolerance=.00001)
-  expect_equal(as.numeric(marginalize(arr,c(1,2),"max")),c(12.1,24.1),
+  expect_equal(as.numeric(marginalize(arr,c(1,2),torch_amax)),c(12.1,24.1),
                tolerance=.00001)
 
 })
@@ -91,9 +91,9 @@ test_that("genMMt tensor", {
   a1 <- matrix(c(1,2),1,2)
   a1t <- torch_tensor(a1)
   a2 <- torch_tensor(matrix(c(1,0,0,1),2,2))
-  expect_equal(as.matrix(genMMt(ett,a1t,"*","sum")), et%*%t(a1))
+  expect_equal(as.matrix(genMMt(ett,a1t,torch_mul,torch_sum)), et%*%t(a1))
   etexp <- cbind(pmax(et[,1]+1,et[,2]),pmax(et[,1],et[,2]+1))
-  expect_equal(as.matrix(genMMt(ett,a2,"+","max")),etexp)
+  expect_equal(as.matrix(genMMt(ett,a2,torch_add,torch_amax)),etexp)
 
 })
 
@@ -115,7 +115,7 @@ test_that("genMMtQ tensor", {
   a1 <- torch_tensor(matrix(1,3,2))
   qq <- torch_tensor(matrix(c(TRUE,FALSE,TRUE, FALSE,TRUE,TRUE),3,2))
   expt <- cbind(et[,1],et[,2],et[,1]+et[,2])
-  expect_equal(as.matrix(genMMtQ(torch_tensor(et),a1,qq,"*","sum")),expt)
+  expect_equal(as.matrix(genMMtQ(torch_tensor(et),a1,qq,torch_mul,torch_sum)),expt)
 
 })
 

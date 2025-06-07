@@ -43,11 +43,9 @@ setMethod("projectOp",c("array","array"), function (m1,m2,op="+") {
 "%^/%" <- function (m1,m2) projectOp(m1,m2,"/")
 
 setMethod("projectOp",c("torch_tensor","torch_tensor"),
-  function (m1,m2,op="+") {
-    op1 <- gsub('"(.*)"',"\\1",deparse(substitute(op)))
-    op1 <- try(inject(getTorchOp(!!op1)))
-    if (!is(op1,"try-error")) op <- op1
-    do.call(op,list(m1,m2))
+          function (m1,m2,op="+") {
+            if (op=="+") op <- torch_add
+            do.call(op,list(m1,m2))
   }
 )
 
@@ -63,9 +61,7 @@ setMethod("marginalize","array",function(pot,dim=1,op="sum") {
 })
 
 setMethod("marginalize","torch_tensor",function(pot,dim=1,op="sum") {
-  op1 <- gsub('"(.*)"',"\\1",deparse(substitute(op)))
-  op1 <- try(inject(getTorchSummaryOp(!!op1)))
-  if (!is(op1,"try-error")) op <- op1
+  if (is.character(op) && op=="sum") op <- torch_sum
   do.call(op,list(pot,dim))
 })
 
@@ -137,14 +133,7 @@ genMMt.tt <- function(m1,m2,combOp,summaryOp) {
 setGeneric("genMMt",function(m1,m2,combOp,summaryOp)
   standardGeneric("genMMt"))
 setMethod("genMMt",c("matrix","matrix"),genMMt.matrix)
-setMethod("genMMt",c("torch_tensor","torch_tensor"),
-          function(m1,m2,combOp,summaryOp) {
-            sop <- gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))
-            summaryOp <- inject(getTorchSummaryOp(!!sop))
-            cop <- gsub('"(.*)"',"\\1",deparse(substitute(combOp)))
-            combOp <- inject(getTorchOp(!!cop))
-            genMMt.tt(m1,m2,combOp,summaryOp)
-          })
+setMethod("genMMt",c("torch_tensor","torch_tensor"),genMMt.tt)
 
 ## Shortcut for this operator.
 ## setMMt("*","sum",torch_matmul)
@@ -187,13 +176,7 @@ setGeneric("genMMtQ",function(m1,m2,QQ,combOp,summaryOp)
   standardGeneric("genMMtQ"))
 setMethod("genMMtQ",c("matrix","matrix","matrix"),genMMtQ.matrix)
 setMethod("genMMtQ",c("torch_tensor","torch_tensor","torch_tensor"),
-          function(m1,m2,QQ,combOp,summaryOp) {
-            summaryOp <- inject(getTorchSummaryOp(
-              !!gsub('"(.*)"',"\\1",deparse(substitute(summaryOp)))))
-            combOp <- inject(getTorchOp(
-              !!gsub('"(.*)"',"\\1",deparse(substitute(combOp)))))
-            genMMtQ.tt(m1,m2,QQ,combOp,summaryOp)
-          })
+            genMMtQ.tt)
 
 
 ## setMMtQ("*","sum",function(m1,m2,QQ)
