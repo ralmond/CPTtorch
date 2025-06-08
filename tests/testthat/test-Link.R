@@ -1,8 +1,20 @@
 test_that("Link initialize", {
 
+  al <- CPT_Link$new(2,guess=.2,slip=.3,high2low=TRUE)
+  expect_s3_class(al,"CPT_Link")
+  expect_equal(CPT_Link$K,2)
+  expect_equal(CPT_Link$slip,.3)
+  expect_equal(CPT_Link$guess,.2)
+  expect_equal(CPT_Link$high2low,TRUE)
+
 })
 
 test_that("Link leakMat", {
+  al <- CPT_Link$new(3)
+  expect_null(sl$leakmat())
+  al <- CPT_Link$new(3,guess=.3)
+  
+  
 
 })
 

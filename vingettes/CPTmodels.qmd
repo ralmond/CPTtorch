@@ -45,7 +45,7 @@ considered.  In the discrete case the conditional probabilities can be
 represented by tensors, and calculation in the Bayes net are all based
 on the multiplication of tensors.
 
-::: {.callout Note}
+::: {.callout-note}
 One very useful Bayes net operation is marginalizing out certain
 variables to focus on certain variables of interest.  With discrete
 variables, this involves summation, but with continuous variables it
@@ -155,10 +155,10 @@ The complete method had three steps:
    the same for the 3 state case, but answers the question of how to
    extend the method for more or fewer states).
    
-   Next, the _parent value matrix_, $\boldsymbol{\Theta}$ is formed.  This is an $S
-   \times J$ matrix where each row correspond to a possible
-   configuration of the parent variables, and each column contains the
-   mapped value of parent $j$.  
+   Next, the _parent value matrix_, $\boldsymbol{\Theta}$ is formed.
+   This is an $S \times J$ matrix where each row correspond to a
+   possible configuration of the parent variables, and each column
+   contains the mapped value of parent $j$.  
    
 2. _Combine_ the parent parent values to make an effective theta for
    each row.  Let $\mathbf{a}$ be a column vector of length $J$ giving
@@ -300,11 +300,19 @@ The function \code{as_Tvallist} will convert a list of names into the
 corresponding list of theta values.
 
 ```{r}
-as_Tvallist(list(var1=c("High","Med","Low"),var2=c("Yes","No")))
+as_Tvallist(list(var1=c("Low","Med","High"),var2=c("No","Yes")))
 ```
 
 Note that the values are set assuming the states are ordered from
-highest to lowest.
+highest to lowest.  Set the `high2low` optional variable to
+`TRUE` it will reverse the order.  This can also be a vector of logical
+if only some inputs are reversed.
+
+```{r}
+as_Tvallist(list(var1=c("Low","Med","High"),var2=c("No","Yes")),
+            high2low=c(TRUE,FALSE))
+```
+
 
 This schema has a numberof attractive properties.  (1) It provides a
 natural way to expand the size of the grid as the number of states
@@ -322,7 +330,7 @@ is not distorted by using different mappings.
 The list of parent value vectors can be passed to the base R function
 `expand.grid`, or the torch function `torch_cartesian_prod`. 
 
-::: {.callout note}
+::: {.callout-note}
 In a cute little bit of arbitrary differences, the `expand.grid`
 function varies the first variable fastest, and `torch_cartesian_prod`
 varies the last variable first.  The function `cartesian_prod` behaves
@@ -333,19 +341,21 @@ the torch version, only using R objects.
 
 ::: {.column}
 ```{r}
-pnames <- list(var1=c("High","Med","Low"),
-               var2=c("Yes","No"))
+pnames <- list(var1=c("Low","Med","High"),
+               var2=c("No","Yes"))
 cartesian_prod(pnames)
 ```
 :::
 
 ::: {.column}
 ```{r}
-as_Tvallist(pnames) |>  buildeTheta10()
+as_Tvallist(pnames) |>  buildpTheta10()
 ```
 :::
 
 ::::
+
+
 
 ## Models with no parents
 
@@ -354,7 +364,7 @@ parents.  As a special case, if there are now parents the parent theta
 matrix is the $1 \times 1$ matrix containing 0.
 
 ```{r}
-buildeTheta10(list())
+buildpTheta10(list())
 ```
 
 Note that the resulting unconditional probability table will have
@@ -378,7 +388,7 @@ The `rule$forward()` method (which takes no arguments) calculates the
 effective theta tensor.  It uses the `rule$pTheta` constant, and the
 parameters stored in `rule$aMat` and `rule$bMat` in this calculation.
 
-::: {.callout note}
+::: {.callout-note}
 Technically, the `$aVec` and `$bVec` versions of the parameter, in the
 unconstrained space, are the instances of the `nn_parameter` object
 and are the targets of the autograd function.  However, usually the
@@ -387,6 +397,11 @@ parameters, and the transformation from unconstrained to natural
 parameters are part of the forward algorithm.
 :::
 
+The active field `$et` returns the most recently calculated effective
+theta table (or recalculates it if the parameters have changed since
+it was last calculated).  The function `getETFrame()` returns the
+effective theta distribution as a data frame with additional columns
+showing the parent values.
 
 ## Compensatory Rule
 
@@ -401,7 +416,7 @@ where the subtraction is broadcast across the first dimension.
 (Again, this formula follows the IRT tradition of subtracting the
 difficulty rather than adding an intercept.)
 
-::: {.callout note}
+::: {.callout-note}
 
 The A and B parameters are stored so that the rows correspond to
 states of the child variable and the columns to parents (as is true
@@ -434,6 +449,7 @@ discriminations for all columns.
 
 ```{r}
 compEx1 <- CPT_Model$new("Compensatory1",)
+```
 
 
 ## Generalized Matrix Multiplication (ASB Rules)
@@ -506,7 +522,9 @@ conjuctive rule and maximum for the disjunctive.
 ## BAS Rules
 
 An entirely different schema for producing CPTs from a small number of
-parameters is the _noisy-and_ and _noisy-or_ models [@pearl].  These
+parameters is the _noisy-and_ and _noisy-or_ models [@pearl], and also
+a DINA (deterministic input noisy-and) and DINO (deterministic input
+noisy-or) of @junker.  These
 models were initially developed using binary networks.  So an
 "and-gate" model would be true if and only if all of the inputs are
 true.  Let $a_j$ be the probability that the child variable is true
@@ -537,12 +555,13 @@ A leak parameter is often added to the  noisy-and and noisy-or rules.
 This is added through the link function.
 
 Finally, this is not quite the noisy-min, noisy-max of @diez.  That
-model uses a $M_j \times K'$ matrix for each parent variable, so it
-doesn't quite fit into this framework.
+model uses a $M_j \times K\prime$ matrix for each parent variable, so
+it can not be easily implemented in this framework.
+
 
 ## Constant Rules
 
-There are couple of cases that just don't fit with the other patterns.
+There are couple of cases that do not fit with the other patterns.
 In particular, for a hyper-Dirichlet distribution it makes senses to
 just directly provide the parameters (the counts or pseudo-counts).
 So the `$forward()` method just returns the parameter.  This is especially
@@ -556,6 +575,24 @@ only a single column (the mean) is needed in the effective theta
 The `DirichletRule` provides an unnormalized conditional probability
 table (e.g., a hyper-Dirichlet parameter).  With a single parent, this
 allows directly specifying the parent value.
+
+## Reversed Inputs and Outputs
+
+To standardize the algorithms, they are all written as if the ordinal
+variables are ordered from the lowest to highest states.  Reversing
+the inputs is straightforward, as the `high2low` flag can easily
+reverse the inputs in the `as_Tvallist` function.
+
+All of the link functions are written in such a way that the input
+columns go from the lowest state to the highest states.  The
+`high2low` field of the link object will reverse these in the final
+output.  
+
+The biggest issue here is caused by the fact that if the A and B
+parameters are associates with states (the first dimension is $K$),
+then they need to be reversed when calculating the effective thetas.
+Setting the `$high2low=TRUE` will reverse the rows of the matrix to
+match the internally low-to-high algorithms of the link functions.
 
 
 ## A Table of Available Rules
@@ -574,7 +611,7 @@ the "Algorithm" column describes the order of operations for the
 operator. There are two rows describing the A and B operators, in
 these rows the "Op" is the operator used to combine that parameter,
 the "pType" gives the legal values for the parameter, and "Dim"
-provides the expected shape.  Note that `K` represents $K'$, the
+provides the expected shape.  Note that `K` represents $K`$, the
 expected theta width passed by the link function.
 
 
@@ -583,7 +620,7 @@ expected theta width passed by the link function.
 | Compensatory | ASB | sumrootj | A | mul | pos | c(K,J) |
 |              |     |          | B | sub | real | c(K,1) |
 | Compensatory1 | ASB | sumrootj | A | mul | pos | c(1,J) |
-|               |     |          | B | sub | real | c(K,1) |
+|               |     |          | B | sub | incrK | c(K,1) |
 | Conjunctive | BSA | min | B | sub | real | c(K,J) |
 |             |     |    | A | mul | pos | c(K,1) |
 | Disjunctive | BSA | max | B | sub | real | c(K,J) |
@@ -595,55 +632,743 @@ expected theta width passed by the link function.
 | Center | ConstB | N/A  | B | N/A  | real | c(S,1) |
 | Dirichlet | ConstB | N/A  | B | N/A  | pos | c(S,K) |
 
+Normally a rule is created through the constructor for the `CPT_Model`
+class.  However, they may also be created by calling the `$new` method
+on the value returned from `getRule(name)`.  
+
+```
+getRule(name)$new(parents,nstates,QQ=TRUE,high2low=FALSE)
+```
+The parameters are as follows:
+
+`parents`
+: This should be a list of numeric vectors given the parent values,
+  i.e., the output of `as_Tvallist`.
+
+`nstates`
+: The number of columns in the output effective theta matrix.  This
+  should be the value of `link$etWidth()`.
+  
+`QQ`
+: If supplied this should be a logical matrix.  See the Inner
+  $Q$-matrix section below.
+  
+`high2low`
+: A logical value.  Defaults to `FALSE`; setting it to `TRUE` will
+  reverse the rows of the A and B matrixes.
+  
+Upon creation, the A and B parameters are set to a default value
+depending on the types.  To set these to an arbitrary value, use the
+`$aMat` and `$bMat` active fields.
+
+The methods `$setParents(parents)` and `setDim(K=k)` can be used to
+alter the parents after the Rule module is built.  The fields `$aop`,
+`$bop` and `$summary` can be set to alternate functions.  The active
+fields `$aType` and `bType` can be used to set the type of the
+parameters.  The active field `$high2low` can be set to reverse the
+rows of the input matrixes, and the value `$QQ` can be set to an inner
+$Q$-matrix if needed.
+
+Setting any of these fields, except for `$aMat` and `$bMat` changes
+the structure of the matrix.  In particular, any just-in-time
+compilation or autograd calculation will need to be redone after such
+a change.
+
+
 ## Writing new Combination Rules
 
+The set of built-in combination rules can be extended by using the
+\code{\link[torch]{nn_module}} function.
 
+The following feilds should be specified:
+
+`classname`
+: Name of the new rule.
+`inherit`
+: One of `RuleASB`, `RuleBSA` or `RuleBAS`.  (Other values may require
+  more work.)
+`aop`, `bop`
+: Torch functions of one argument which combine the A and B
+  parameters.
+`summary`
+: Torch function with a signature `(tensor,dim)` which summarized over
+  the dim.
+
+Also the two private fields, `atype` and `btype` often need to be
+overriden with a `PType` object (see @sec-PType) to provide the
+parameter domain and dimensions.
+
+```{r}
+ConjunctiveRule <- nn_module(
+    classname="ConjunctiveRule",
+    inherit = RuleBSA,
+    bop = torch_sub,
+    summary = torch_min,
+    aop = torch_mul,
+    private=list(
+        atype=PType("pos",c(K,1)),
+        btype=PType("real",c(K,J))
+     )
+)
+```
+
+In some cases, the `$forward()` method will be overridden because either
+a more efficient algorithm than the default is available or because
+the built in algorithms are not sufficient.  Remember that the
+`$forward()` method should flip the columns of the A and B matrix if
+`$high2low=TRUE`.
+
+Finally, the new rule should be registered by calling
+`setRule(name,rule)`.  
 
 # Link Functions
 
+In a generalized linear model, the link function transforms the linear
+predictor (i.e., the output of the combination rule) into the final
+parameter of the distribution.  The distribution is a conditional
+categorical one, so the parameter in question is the conditional
+probability table, a matrix in which each row is a probability
+distribution.
+
+Because each row must sum to one, if there are $K$ columns there are
+only $K-1$ free parameters.  Depending on the strategy used in the
+link function, there may be $K$, $K-1$ or some other number of
+expected columns in the input to the link function.  The
+`link$etWidth()` function returns the target width of the input
+tensor.
+
+A popular choice of link is the logistic function.  The inverse logit
+function has a sigmoid shape, similar to the cumulative normal
+distribution (normal ogive).  Scaling by a factor of 1.7 makes the
+approximation very close:  
+
+$$\mathord{logit}^{-1}(D x) \approx \phi(x)\ .$$
+
+The constant `link$D` can be set to 1.7 to follow the @lord convention
+for IRT-like models.  Setting it to 1.0 uses the unscaled version of
+the logistic function.
+
+Guessing, `link$guess`, and slippling, `link$slip`, parameters can be
+used to adjust the probabilities.  These can be set to `NA` to skip
+the adjustment step.
+
+The link functions are written as if the child state goes from the
+lowest to the highest values.  If the field `link$high2low` is set to
+true, then columns of the CPT are reversed.
+
 ## Potential to simplex converstion
+
+Let $\boldsymbol{\phi}=(\phi_1, \dots \phi_K)$ be a collection of
+non-negative values, sometimes called a potential.  This can be turned
+into a probability distribution by dividing by the sum of the values.
+(This is often called normalization in the statistics world, but that
+name is used in `torch` for a different kind of normalization, so the
+function is called `torch_simplexify`.)
+
+For a multidimensional tensor, it is the last dimension that is
+converted into a tensor, so the simplexification operation sums over
+the last dimension and divides by this.
+
+The `PotentialLink` uses this directly, and the `SoftmaxLink` uses
+essentially the same strategy.
+
+The drawback of this strategy is that there is no true optimium of the
+effective thetas.  In particular, multiplying (or adding for softmax)
+an optimal value by any constant also produces the same conditional
+probability table.
 
 ## Differences in cut scores (Graded Response)
 
+Suppose the child variable, $V$,  can take on values $1, \ldots, K$.  Let
+$r_k = \Pr(V \ge k | \mathord{pa}(V))$.  Clearly, $r_1=1$ and $r_{K+1}
+= 0$.  So only $K-1$ values need to be defined (by the effective
+theta).  Then, $\Pr(V=k | \mathord{pa}(V)) = r_k -r_{k+1}$.  This
+assumes that the $r_k$'s form a non-decreasing sequence.  To fix this
+potential issue, the sequence can be passed through a cumulative
+maximum filter, and the final result is clipped at 0 and 1.  The
+`cuts2simplex()` function does this transformation.
+
+As the effective theta values now represent cuts between levels of the
+child variable, the effective theta tensor should have width $K-1$.
+
+Two different `CPT_Link` objects are supplied in the `CPTtorch`
+package.  The `DifferenceLink` assumes that the effective thetas are
+probabilities with values between zero and one.  This is the link function.
+used by @Diez in the noisy-max and noisy-min functions.  @Samejima
+proposes the `GradedResponseLink` which uses effective thetas on the
+IRT (logistic) scale.  Note that to avoid possible out of order
+probalities:  (1) the difficulty parameters (B) need to be in
+increasing order, (2) the same discriminations (A) must be used for
+each level of the output variable.  The `CompensatoryGRRule` is a
+modified version of the `CompensatoryRule` which supports these extra
+requriements. 
+
 ## Step Probabilities (Partial Credit)
+
+@Muraki proposed a different mechanism for ordinal variables.  Imagine
+a multi-step problem and let $r_k = \Pr(V > k+1| V \ge k, \mathord{pa}(V))$ be the
+probability that the $k$th step is completed given that the previous
+steps are completed.  Set $r_0=1$ and $r_{k+1}=0$.  Then the
+probabilities can be computed as $\Pr(V=k|\mathord{pa}(V)) = (1-r_k)
+\prod_{kk<k} r_kk$.  Once again, only $K-1$ effective theta values are
+needed.  Also, unlike the graded response models, the effective thetas
+doe not need to be increasing series, so there is much more
+flexibility in how the transitions are modelled.
+
+There are two variants of this mechanism supplied with `CPTtorch`.
+The `StepProbsLink` models the probabilities directly.  The
+`PartialCreditLink` uses the inverse logistic transform.
 
 ## Discrete IRT Models
 
-## Gaussian Link
+Item response theory (IRT) models propose that there is a monotonic
+relationship between the _ability_ of the subject, usually referred to
+as $\theta$ and the probability of success, which can range between 0
+and 1.  This makes sigmoid shape curves a natural candidate, @birnbaum
+proposed using the normal ogive, but later authors preferred the
+inverse logistic curve as being slightly easier to compute.  They
+often multiplied the value by a constant $D=1.7$ so that the scale of
+the logistic curve matched that of the normal ogive.  
+
+Adding the $D$ scale factor is not universal in the IRT world; some
+IRT software uses it and some does not.  The preference in `CPTtorch`
+is to use it is a kind of an inverse to the normal quantiles used in
+calculating the parent theta matrix.  However, this can be overridden
+in the IRT-like link functions by setting the field `link$D <-
+torch_tensor(1.0)`. 
+
+The two link functions derived from IRT models, `GradedResponseLink`
+and `PartialCreditLink` use this $D$ correction, as does the
+`SoftmaxLink` (which reduces to a inverse logistic function with only
+two states).  Note that all three of these models are equivalent to
+the 2-parameter logistic (2PL) IRT model when there are only two
+states in the child variable.  All three link functions have a field
+`link$D` which is by default set to 1.7, but can be alternatively set
+to `torch_tensor(1.0)`.
+
+## Gaussian Link (Regression Models)
+
+While the link function based on Samejima's graded response model
+proved useful for observable outcome variables (items) in educational
+testing models, it was not as useful for describing the relationship
+between latent varaibles.  @bninea proposed another kind of link
+function based on regression models.  In this case, the effective
+theta predicted the mean value (on the normal scale) corresponding to
+the parent values, and the standard deviation around this line was
+based on the link scale parameter, the residual standard deviation,
+$\sigma$.  Note that this model is a latent regression, with the A's
+representing slopes, -B the intercept, and $1-\sigma^2$ the multiple
+correlation coefficient.
+
+To translate this back into a ordinal value, first establish $K$
+equally sized (according to the normal distribution) intervals, with
+endpoints at `cuts <- qnorm((0:K)/K)` (the highest and lowest values are
+`-Inf` and `+Inf` respectively).  The corresponding probability is the
+probability of a normal random with mean $\tilde{\theta_s}$ and
+standard deviation $\sigma$ falling into that interval, which can be
+found by taking differences in the `pnorm(cuts,et[s],sigma)` values.
+
+Note that unlike the othe link functions, this link function uses only
+one column in the effective theta distribution, but requires the
+additional link scale parameter.
 
 ## Guessing and Slipping
 
+Consider a determinist model which predicts that a subject will be
+able to successfully complete a task.  Now, let $\epsilon$ be the
+probability that the subject makes a careless error which causes them
+to be unsuccessful.  This is called a _slipping parameter_.  These are
+often used in noisy-and type models (particularly, DINA models).
+
+Similarly, if the deterministic model predicts failure, there is a
+chance, $\gamma$ that the subject could stumble upon a solution; this
+is the _guessing parameter_.  
+
+The idea of slipping and guessing can be extended to ordinal variables
+by defining the probability that $V$ goes up $k$ levels as $\gamma^k$,
+and the probability that it drops down by $k$ levels as $\epsilon^k$.
+Then guessing is defined by a $K \times K$ upper triangular matrix:
+
+##\mathbf{G}=\begin{matrix}{ccccc}
+* & \gamma & \gamma^2 & \ldots & \gamma^{K-1} \cr
+0 & *      & \gamma   & \ldots & \gamma^{K-2} \cr
+\vdots & \vdots  & \ddots   & \ddots & \vdots} \cr
+0 & 0      & \ldots   & * & \gamma \cr
+0 & 0      & \ldots   & 0 & 1 \cr
+\end{matrix}\ ,$$ where $*$ is a value chosens such that the row sums
+are all 1.  Note that to ensure that $*$ is non-negative, $\gamma \le
+frac{1}{2}$.  The function `guessmat(gamma,K)` builds this matrix.
+
+The slipping matrix is a lower triangular matrix:
+##\mathbf{E}=\begin{matrix}{ccccc}
+1 & 0 & \ldots & 0 \cr
+\epsilon & *      & 0  & \ldots & 0 \cr
+\vdots & \vdots  & \ddots   & \ddots & \vdots} \cr
+\epsilon^{K-2} & \epsilon^{K-3}   & \ldots   & \epsilon & * \cr
+0 & 0 & \ldots & 0 & 1 \cr
+\end{matrix}\ .$$  The function `slipmat(gamma,K)` builds this
+matrix.  Note that both the guessing and slipping matrixes
+become the identity matrix when the guessing or slipping parameter is
+zero. 
+
+This is not the only way that guessing and slipping could be
+parameterized, but this method has the advantage of requiring only one
+parameter for each of guessing, `link$guess`, and slipping,
+`link$slip`.  The field `link$guessP` and `link$slipP`, are the
+corresponding `nn_parameter` objects.  These have been transformed
+using $\mathord{logit}(2\gamma)$ or $\mathord{logit}(2\epsilon)$ so
+that they can be used with unconstrained maximization.
+
 ## Table of Link Functions
 
-    Name | Link function | D | Scale Parameter | Type | etWidth |
-    Potential | simplexify | | -- | -- | K |
-    StepProds | cumprod | | -- | -- | K-1 |
-    Difference | diff | | | | K-1 |
-    Softmax | softmax | 1.7 | | | K |
-    PartialCredit | partialCredit | 1.7 | | | K-1 |
-    GradedResponse | graded Response | 1.7 | | | K-1 |
-    Gaussian | probit | | residual std | pos dim=c(1) | 1 |
-    Slip | diff `%*%` slipmat | | slipping | unit dim=c(1) | K-1 |
-    Guess | diff `%*%` guessmat | | guessing | unit dim=c(1) | K-1 |
-    GuessSlip | `%*%` guessmat | | guessing | unit dim=c(2) | K-1 |
-    | `%*%` slipmat | | slipping | | |
+Link functions can be selected by name using the `getLink(linkname)`
+function (the link name is usually the class name without the "Link"
+at the end).  The function, `availableLinks()` lists all registers
+links, and the function `setLink(linkname,value)` registers a new link
+function. 
 
+| Name | Link function | D | Scale Parameter | Type | etWidth |
+| ---- | ------------- | - | --------------- | ---- | ------- |
+| Potential | simplexify | | -- | -- | K |
+| StepProds | cumprod | | -- | -- | K-1 |
+| Difference | diff | | | | K-1 |
+| Softmax | softmax | 1.7 | | | K |
+| PartialCredit | partialCredit | 1.7 | | | K-1 |
+| GradedResponse | graded Response | 1.7 | | | K-1 |
+| Gaussian | probit | | residual std | pos dim=c(1) | 1 |
+
+Only the lines in the table with an entry in the `$D` field currently
+use the $D$ constant.  Only the "Gaussian" (also "Normal") link
+currently uses a link scale parameter.
+
+All of the link functions support the guessing and slipping
+adjustment, if the guessing and/or slipping parameter is set.
+
+Once again the recommend way to build a link function is through the
+`CPT_Model` constructor.  However, calling the `$new()` method on the
+output of `getLink(linkname)` will also produce a link function.
+
+```
+getLink(linkname)$new(nstates,guess=NA,slip=NA,high2low=FALSE)
+```
+
+The arguments are as follows:
+
+`nstates`
+: An integer giving the number of states of the child variable.
+
+`guess`,`slip`
+: Either a numeric value between 0 and .5 giving the guessing/slipping
+  parameter or `NA` indicating that guessing and slipping is not used.
+  
+`high2low`
+: A logical value.  If true the output columns will be reversed
+  so that the highest value is the first column rather than the last.
+  
 
 ## Building New Link Functions
 
+New kinds of link functions can be built using the
+`torch::nn_module()` function with the `inherit` argument set to
+`CPT_Link` or one if its subclasses.  Generally speaking, implementers
+will need to set the following fields:
+
+`classname`
+: Set this to the name of the new class.
+`link`
+: This is a function that takes the effective theta values and returns
+  the conditional probabilty table, prior to applying slipping and/or
+  guessing logic.
+`etWidth()`
+: This should be a function (usually referencing `self$K` which gives
+  the number of output states which returns the number of columns
+  expected in the effective theta input.
+`high2low`
+: A logical value indicating the order of the childe value.  (Note
+  that this can also be set in the constructor).
+`leakmat`
+: A function which takes the slipping and guessing parameters and
+  turns them into a matrix used to adjust the final conditional
+  probability tables.  Usually, the default value is sufficient.
+`private$stype`
+: If a link scale parameter is needed, set its prototype here.
+  
+The `$forward(et)` method generally called `$link(et)`, mulitiplies
+the result by the output of `$leakmat()` and then, if
+`$high2low==TRUE`, reverses the columns of the final matrix.
+Consequently, the `$link(et)` function should be written assuming that
+the state of the output values goes from lowest to highest, and let
+the `$forward()` method take responsibility for applying the guessing,
+slipping and high2low logic.
+
+Finally, use the function `setLink(linkname,value)` to register the
+new link function.
+
 # CPT Models
 
+A `CPT_Model` is `torch::nn_module` which calculates a conditional
+proability tables.  It has two component modules, a `CombinationRule`
+and a `CPT_Link`.  Its forward method takes not parameters and returns
+the conditional probability tensor.
+
+The recommended way to create a `CPT_Model` is with the `$new` method:
+
+```
+CPT_Model$new(ruletype, linktype, parents=list(), states=character(),
+              QQ=TRUE, guess=NA, slip=NA,high2low=FALSE)
+```
+
+The arguments are as follows:
+`ruletype`, `linktype`
+: These are names for the rule and link components, which should be
+  values from `availableRules()` or `availableLinks()`.
+
+`parents`
+: This should be a named list of named vectors giving the parent
+  values, however, the initialization method calls
+  `as_Tvallist(parents)` adding missing names or values as needed.
+
+`states`
+: A character vector giving the state names for the child variable.
+
+`QQ`
+: A logical matrix showing which of the parameters are used if an
+  inner $Q$-matrix is used.
+  
+`slip`,`guess`
+: If slipping or guessing logic is added to the final conditional
+  probability table, then these should be set to a value between 0 and
+  1/2.  If they are `NA`, the slipping and guessing corrections are
+  not applied.
+
+`high2low`
+: Link functions are written as if the child states are ordered from
+  lowest to highest.  Setting this to true reverses the last variable.
+  
 ## Rules and Links
+
+A `CPT_Model` is a container module which contains a `$rule` field,
+which is a `CombinationRule`, and a `$link` field, which is a
+`CPT_Link` object.  Many of the methods and feilds in the `CPT_Model`
+object are delegated to the inner objects.
 
 ## Parents Revisited
 
+The `parents` argument should be a named list that has:
+
+* One element for each parent varaible, the names give the names of
+the parent variables.  If there are no parents, this should be an
+empty list.
+
+* That element should be a named numeric vector mapping the state
+   names to numeric values.
+   
+The numeric values are used to build the parent theta tensor in the
+`$rule` object, and the names are used when building data frame
+versions of the conditional probability table.
+
+The `parents` argument to the constructor is passed through
+`as_Tvallist()` which will add values based on normal quantiles or
+automatically generate labels.  Note that to generate numeric values
+for values which are ordered high-to-low, the `as_Tvallist()` function
+will need to be called manually to apply non-default values for the
+`high2low` argument.
+
 ## Forward Method
 
+The `CPT_Model$forward()` method first calls the `rule$forward()`
+method to calculate the effective theta tensor and then it is passed
+`link$forward(et)` to produce the final CPT.
+
+There between 3 and 5 parameters, the values of `rule$aVec`,
+`rule$bVec`, and if they are non-null, `link$sVec` (the scale
+parameter), `link$slipP` and `link$guessP` (the slipping and guessing
+parameters).  When `autograd` is turned on, the gradients are formed
+for these parameters.  Note that the parent value tensor is _not_ a
+parameter, it is instead a constant, computed in advanced.
+
+The following steps take place in the algorithm.
+
+**rule$forward()**
+
+1. The `rule$aVec` and `rule$bVec` parameters are converted from the
+   unrestricted vector form to the natural matrix form.
+
+2. If `rule$high2low=TRUE` then the rows of the A, B and QQ parameters
+   are reversed.
+
+3. The combination rule is called using the values of the `link$aop`,
+   `link$bop` and `link$summary` operators, this is the heart of the
+   `rule$forward()` algorithm.  Note that there are generally two
+   versions of the combination algorithm a simpler version which can
+   be run when `rule$QQ==TRUE` (all elements used) or a more complex
+   algorithm that uses a logical matrix.
+
+The output of this stage is passed to the link function forward method.
+
+**link$forward(et)**
+
+4. If the `link$sVec` is not null, convert the parameter to its
+   natural scale (positive numbers).
+
+5. Apply the link function to get a conditional probability table.
+
+6. If the `link$slipP` or `link$guessP` parameter are non-null, they
+   are converted to the natural (0 to 1/2) scale and calculate the
+   `link$leakmat()`.  Multiply the CPT calculated in the previous step
+   by the leak matrix.
+   
+7. If `link$high2low==TRUE` then reversed the columns of the
+   CPT.
+   
+For efficiency when learning parameters, it is important to understand
+what changes to model feilds will affect the structure of this
+algorithm  (note that the just-in-time tracing facility only traces
+the `torch` operations, not logic that runs in R).  Consequently,
+changing the following fields will invalidate the traced version of
+the function or the calculated autograd.
+
+* Setting `CPT_Model$parentVals()`, or otherwise setting the parents,
+  in such a way that it changes the shape of the parent value tensor.
+
+* Setting `CPT_Model$stateNames()` to a vector of a different length,
+  or otherwise changing the number of states in the output CPT.
+
+* Changing the type of the `rule$aType` or `rule$bType` (changes the
+  natural parameter to vector algorithm).
+
+* Changing the dimensions of the `rule$aType` or `rule$bType`.
+
+* Changing from `$QQ=TRUE` to `$QQ` as a logical tensor.
+
+* Changing the value of `CPT_Model$high2low`, `link$high2low` or
+  `rule$high2low`.  
+  
+* Changing the value of `link$sType` (either type or dimensions).
+
+* Changing `link$guess` or `link$slip` from a numeric value to `NA` or
+  from `NA` to a numeric value.
+  
+Generally, these values should be given by the structure of the
+network and set in advance of any calculations.
+
+In constrast, specific values of `$aMat`, `$bMat`, `$linkScale`,
+`$slip` and `$guess` (if the latter two are not currently `NA` or
+being set to `NA`) can be freely changed.
+   
 ## Conditional Probability and Effective Theta Frames
 
-## Log likelihood of data
+The `CPT_Model$forward()` function calculates the conditional
+probability tensor as an $S \times K$ matrix, with rows corresponding
+to parent configurations.  It also caches the value.  
+
+The method `CPT_Model$getCPT()` returns the cached value if no
+parameters have changed since it was last calculated.  It also
+reshapes it to a $M_1 \times \cdots \times M_J \times K$ tensor, which
+is the most useful form for the Bayes net calculation algorithm.
+
+The method `CPT_Model$getCPFrame()` converts the table to an R
+`data.frame` and adds extra columns showing the configuration of
+the parent variables.  This is a more human readable version of the
+table.  These use the labels supplied with the `$parentVals` and
+`$stateNames` to label the rows and columns.
+
+The method `CPT_Model$getETframe()` returns the effective theta table
+(the output of the `$rule` calculation) again annotated with the
+parent configurations.
+
+## Ordinal Variable Directions
+
+To keep programmers from wasting too much sanity, the design of
+`CPTtorch` defaults to having the states of ordinal varaibles go from
+lowest to highest.  However, users may prefer a different order (note
+that the `CPTtools` package assumes ordinal variables go high-to-low).  
+
+Reversing the direction of the parent variables is straightforward,
+simply reverse the order of the parent theta values.  This can be done
+either by directly supplying the mapping in the `parents` argument of
+the constructor, or if just supplying the names, adding the `high2low`
+flag to `as_Tvallist()`.  Note that this can be `TRUE` (flip all
+parents), `FALSE` (default, flip none) or a vector specifying which
+one to flip.
+
+A child variable that runs high-to-low needs changes in three places.
+
+1. The columns of the output CPT need to be reversed.  Setting
+   `link$high2low` to true signals that this reversal should be done.
+2. If the A and/or B parameters have dimension involving $K'$ (e.g.,
+   $K' \times J$ or $K' \times 1$, then the rows of the table need to
+   be reversed.  Setting `rule$high2low` to true signals this step.
+3. If the parameter is of the `incrK` type, then the columns need to
+   be reversed when transforming the parameter to the real-number
+   scale.  This is done by setting `pType$high2low=TRUE`, which is
+   done when setting `rule$high2low`.
+   
+Setting `CPT_Model$high2low` will set the corresponding value in both
+the `$rule` and `$link` components.
+
+
+## Deviance
+
+Suppose that data exist from a sample of individuals and that values
+exist for all parent variables and the child variable.  Let
+$\mathbf{X}$ be a $M_1 \times \cdots \times M_J \times K$ tensor
+containing the (expected) counts.  (In pratice, the parent variables
+are latent, but their values can be replaced with the expected values
+which comes from scoring the individuals, so $\widehat{\mathbf{X}}$ is
+used in place of the counts.  Let $\mathbf{P}$ be the current value of
+the conditional probability tensor.  These can be reshaped as $S
+\times K$ matrixes without loosing information.
+
+The deviance is defined as
+
+$$\mathord{Deivance} = -2 \sum_s \sum_k x_{s,k} \log(p_{s,k})\ .$$
+
+As there are often zero or near-zero cells in the expected count table
+$\mathbf{X}$, a _continuity correction_ is sometimes applied.  Here,
+$\widtilde{\mathbf{X}} = \widehat{\mathbf{X}} + cc \mathbf{P}$ is used
+instead of $\mathbf{X}$ in the equation above.  The value of $cc$ is
+taken from the `CPT_Model$ccbias` field (which defaults to 10).  The $cc$
+bias acts like a sort of interia: if $cc$ is large wrt the row sums of
+$\widehat{\mathbf{X}}$, then the optimizer will move more slowly away
+from the initial parameter values.
+
+The likelihood might be underconstrained, especially if there are a
+lot of parameters.  To bias the parameter values toward smaller
+values, two penalty terms, one for A and one for B can be added to the
+deviance.   These are `CPT_Model$abias*sum(link$aVec^2)` and
+`CPT_Model$bbias*sum(link$bVec^2)`.  (Note that if the bias term is 0,
+then the penalty is not calculated to save time.)
+
+The penalty is calculated on the transformed ($\mathbb{R}$) scale.
+This means that for positive parameters (typically A is positive), the
+penalty makes the parameter tend towards 1 on the natural scale.  For
+real parameters (typically B is real) the penalty makes the parameter
+tend towards 0.
+
+::: {.callout-note}
+For unit parameters, the penalty will make them tend towards 1/2.
+However, this kind of penalty doesn't really make sense for the other
+kinds of parameters.  In a future version, the penalty might depend on
+the parameter type.
+:::
+
+Akieke's information criteria (AIC) is closely related to the
+deviance.  The method `CPT_Model$AIC(dataset)` calculates this.  (Note
+that this is usually not the target for optimizization because as long
+as the structural parameters are the same it is just a constant plus
+the deviance.)
 
 ## Optimization
+
+The `CPT_Model` object can take advantage of the optimizers built into
+`torch`.  To adjust the parameters of the model to closely match the
+observed (or expected) data table requires first constructing an
+optimizer, and then stepping through the optimization routine until
+convergence is reached.
+
+The method `CPT_Model$buildOptimizer(constructor,...)` does the
+following steps:
+
+1) It uses the `torch::jit_trace` function to produce a compiled
+script for the calculating the deviance.  This is cached in
+`CPT_Model$lossfn`.  
+
+2) It builds an optimizer, where "constructor" should be the name of
+an optimizer constructor, e.g., `torch::optim_adam`.
+
+Next the method `CPT_Model$step(datatab,r)` then does $r$ steps of
+optimization.  The `datatab` parameter is the current expected count
+table.  The `$step()` takes $r$ steps of the optimizer and then
+returns the deviance.  Note that this will update the values of the
+parameters in the model.
+
+Normally, the `$step()` function would be repeated until the change in
+the deviance (or the parameters) is lower than some threshold.  The
+convergence check is not built into the `CPT_Model` object.  This is
+because the data table is usually an expected data table.  So instead,
+an generalized expectation-maximization (EM) algorithm @dempster1977
+is used.
+
+Assume that there exists a collection of records for various subjects
+in which the non-latent variables have been observed.
+
+0. Start with initial values of all parameters and calculate a
+   complete set of conditional probability tables for all variables in
+   the model.
+
+1. (E-step, part 1). "Score" the records in the data set using the
+   current model parameters (the code for this is in the package
+   `tenbn`).  This produces expected values for the latent variables
+   as well as a log likelihood for the observations.
+   
+2. (E-step, part 2).  Use the expected values of the latent variables
+   to compute expected data tables for each variable.
+
+3. (M-step).  Run the `$step()` algorithm for several cycles.  This
+   does not need to be run to convergence, it must just bring the
+   expected log-likelihood closer to the maximum.  (This is the
+   "generalized" part of the Generalized EM).
+   
+4. If the difference in log likelihood between the previous round and
+   this round is less than the convergence threshold, stop with a
+   converged result.  If the maximum number of cycles has been
+   exceeded stop, with a non-converged result.
+   
+Typically, the optimizer is only run a few steps each cycle, and the
+convergence testing is done by the outer EM algorithm.
+
+
+## Structural Constants versus Parameters
+
+Some fields are _structural constants_ in the sense that changing them
+changes the dimensions of the tensors or the operations used in the
+algorithm.  In partcular, after changing one of the structural
+constants, the `$buildOptimizer()` method needs to be called again to
+recompile the algorithm.  The following table shows which field
+represents structural constants.
+
+
+| Field | Structural | Description |
+| ----- | ---------- | ----------- |
+| `$rule` | Yes      | Combination rule sub-module |
+| `$rule$aType` | Yes | Shape and range of A parameter.|
+| `$rule$bType` | Yes | Shape and range of B parameter.|
+| `$rule$aop` | Yes | Combination with A parameter.|
+| `$rule$bop` | Yes | Combination with B parameter.|
+| `$rule$summary` | Yes | Collapse over parent dimension.|
+| `$aMat` | No | Value of A parameter. |
+| `$bMat` | No | Value of B parameter. |
+| `$link` | Yes | Sub-module for link model. |
+| `$link$link` | Yes | Functional form of link function. |
+| `$link$sType` | Yes| Dimensions or range of link scale parameter.|
+| `$linkScale` | No | Value of the link scale parameter. |
+| `$slip` | 1 | Slipping parameter. |
+| `$guess` | 1 | Guessing parameter. |
+| `$ccbias` | No | Continuity correction bias. |
+| `$abias` | 2 | Penalty strength for A penalty. |
+| `$bbias` | 2 | Penalty strength for B penalty. |
+| `$parentVals` | 3 | Mapping between parent states and real numbers. |
+| `$parentNames` | read-only | Names of parent states (inferred). |
+| `$stateNames` | 4 | Names of child variable states. |
+| `$QQ` | Yes | Inner $Q$-matrix |
+| `$high2low` | Yes | Reverse order for child variable states. |
+
+1. The `$guess` and `$slip` parameters are structural being changed
+   from `NA` to a numeric value or back.  Changing them to a different
+   numeric value does not require rebuilding the optimizer.
+   
+2. Setting the `$abias` or `$bbias` to zero turns off the penalty, and
+   hence makes it a structural field if the value is changed from 0 to
+   a non-zero value or a non-zero value to zero.
+   
+3. This is a structural field if either (a) the number of parents
+   changes, or (b) the number of states of any of the parents change.
+   Changing the numeric values, or the labels for either states or
+   variables is not a structural change.
+   
+4. Changing the number of states is a structural change.  Changing the
+   labels is only cosmetic.
 
 # Some commonly used Patterns
 
@@ -659,20 +1384,59 @@ expected theta width passed by the link function.
 
 # Inner $Q-Matrixes
 
-  $$\tilde{\theta}_{s,k} = \bigoplus_{j: qq_{k,j}} (\Theta_{s,j}
+In a educational testing model the variables are often partitioned
+between the latent variable representing knowledge, skills and
+abilities and the observable variables representing the scored
+responses from test items.  Often there is a matrix called $Q$ which
+indicates which of the latent variables are relevant for each of the
+observable variables:  $q_{v,j}=1$ if Variable $j$ is parent of
+Variable $v$ and 0 if not.
+
+Consider the `PartialCreditLink` where each column of the effective
+theta is modeling the transition between two states.  Not all of the
+parent variables may be relevant for all of the transitions.  Consider
+a typical math story problem.  This requires both language
+understanding and math skills, but the first step might require just
+the language skill and the second step the math skills.
+
+Let $\mathbf{QQ}$  be a logical $K' \times J$ matrix, where
+$qq_{k,j}=1$ if Parent $j$ is relevant for the transition from State
+$k$ to $k+1$ and 0 if not.  The combination rules can be modified to
+exclude the false values from the $\mathbf{QQ}$.
+
+ASB Rule: 
+
+$$\tilde{\theta}_{s,k} = \bigoplus_{j: qq_{k,j}} (\Theta_{s,j}
   \mathbin{ⓐ} a_{j,k})  \mathbin{ⓑ} b_{1,k}\ .$$
 
+BSA Rule:
 
-  $$\tilde{\theta}_{s,k} = \bigoplus_{j: qq_{k,j}} (\Theta_{s,j} \mathbin{ⓑ}
+$$\tilde{\theta}_{s,k} = \bigoplus_{j: qq_{k,j}} (\Theta_{s,j} \mathbin{ⓑ}
   b_{j,k}) \mathbin{ⓐ} a_{1,k}\ .$$
 
+BAS Rule:
 
-  $$\tilde{\theta}_{s,k} = \bigoplus_{j:qq_{k,j}} ((\Theta_{s,j}
+$$\tilde{\theta}_{s,k} = \bigoplus_{j:qq_{k,j}} ((\Theta_{s,j}
   \mathbin{ⓑ} b_{k,j}) \mathbin{ⓐ} a_{k,j})\ .$$
 
+Note that the algorithm is slightly faster if it doesn't need to do
+the extra selection.  Similarly, the case where all elements of
+$\mathbf{QQ}$ are 1 is so common, that as a shortcut setting
+`$QQ=TRUE` will use the faster algorithm which uses all values.
 
+Note that the inner $Q$-matrix works well with the partial credit type
+link function, but not the graded response, as there is no guarentee
+that the cut probabilities will be in increasing order.
 
 ## Inner $Q-Matrixes and Transformed Parameters
+
+If the inner $Q$-matrix has any false elements, then the corresponding
+element of the parameter do not affect the CPT or the deviance.  When
+the natural parameter matrix (`$aMat` or `$bMat`) are set, they are
+transformed to vectorized versions (`$aVec` and `$bVec`), the cells
+corresponding to the false values in the `$QQ` field are eliminated
+(from the A parameter for ASB rules, the B parameter for BSA rules and
+from both for BAS rules).  
 
 # Efficiency Concerns
 
