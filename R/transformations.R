@@ -191,15 +191,14 @@ getZeroOp <- function (op) {
 }
 
 ## Define qnorm and pnorm in terms of erf and erfinv
-cpt_pnorm <- function (x) {
+torch_pnorm <- function (x) {
   torch_div(x,sqrt(2))$erf_()$add_(1)$div_(2)
 }
-torch_pnorm <- jit_trace(cpt_pnorm,torch_tensor(c(-.67,0,.67)))
 
-cpt_qnorm <- function (x) {
+
+torch_qnorm <- function (x) {
   torch_mul(x,2)$sub_(1)$erfinv_()$mul_(sqrt(2))
 }
-torch_qnorm <- jit_trace(cpt_qnorm,torch_tensor(c(.25,.5,.75)))
 
 
 
@@ -277,7 +276,7 @@ getTorchVectorOp <- function (opname) {
 ## torch_clip              Clip
 ## torch_narrow            Narrow
 ## torch_range             Range
-## torch_reduction         Creates the reduction objet
+## torch_reduction         Creates the reduction object
 ## torch_reshape           Reshape
 ## torch_serialize         Serialize a torch object returning a raw object
 ## torch_split             Split
@@ -285,6 +284,7 @@ getTorchVectorOp <- function (opname) {
 ## torch_where             ifelse
 ## torch_unsqueeze         Unsqueeze
 ## torch_embed_diag        diag
+## torch_full              rep
 
 
 
@@ -299,7 +299,7 @@ guessmat <- function(n,g) {
 torch_guessmat <- function(n,g) {
   mat <- torch_zeros(n,n)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_diag_embed(torch_tensor(rep(g^offset,n-offset)),
+    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,g$pow(offset)),
                                      offset))
   mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
 }
@@ -315,7 +315,7 @@ slipmat <- function(n,s) {
 torch_slipmat <- function(n,s) {
   mat <- torch_zeros(n,n)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_diag_embed(torch_tensor(rep(s^offset,n-offset)),
+    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,s$pow(offset)),
                                      -offset))
   mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
 }

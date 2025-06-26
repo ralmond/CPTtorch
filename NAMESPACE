@@ -112,7 +112,7 @@ export(CompensatoryRule,CompensatoryGRRule,ConjunctiveRule,
        DirichletRule)
 
 
-export(CPT_Link,getLink,setLink,availableLinks)
+export(CPT_Link,getLink,setLink,availableLinks,cuts2simplex)
 export(PotentialLink,StepProbsLink,DifferenceLink,
        SoftmaxLink,GradedResponseLink,PartialCreditLink,
        GaussianLink,SlipLink)

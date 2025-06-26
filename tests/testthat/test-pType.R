@@ -234,7 +234,7 @@ test_that("getZero defaultParameter unit",{
 test_that("checkParam pVec",{
   pt <- setpTypeDim(PType("pVec",dim=c(K)),K=3,J=1)
   af <- c(4,5,6)/15
-  expect_false(isTRUE(checkParam(pt,af)))
+  expect_true(isTRUE(checkParam(pt,af)))
   dim(af) <- 3
   expect_true(isTRUE(checkParam(pt,af)))
   af[2] <- .9

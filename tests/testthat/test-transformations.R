@@ -90,13 +90,13 @@ test_that("torch_pnorm,qnorm",{
 test_that("guessmat",{
   gm3.5 <- matrix(c(.25,.5,.25, 0,.5,.5, 0,0,1), 3,3, byrow=TRUE)
   expect_equal(guessmat(3,.5),gm3.5)
-  expect_equal(as.matrix(torch_guessmat(3,.5)),gm3.5)
+  expect_equal(as.matrix(torch_guessmat(3,torch_tensor(.5))),gm3.5)
 })
 
 test_that("slipmat",{
   sm3.5 <- matrix(c(1,0,0, .5,.5,0, .25,.5,.25), 3,3, byrow=TRUE)
   expect_equal(slipmat(3,.5),sm3.5)
-  expect_equal(as.matrix(torch_slipmat(3,.5)),sm3.5)
+  expect_equal(as.matrix(torch_slipmat(3,torch_tensor(.5))),sm3.5)
 })
 
 

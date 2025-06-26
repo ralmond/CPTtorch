@@ -143,6 +143,7 @@ checkParam.PType <- function(pType,par) {
   if (is.null(ptd))
     warning("Dimension not yet set, not checked.")
   else {
+    if (is.null(dim(par))) dim(par) <- length(par)
     if (length(ptd) != length(dim(par)) ||
         any(mapply(\(d1,d2) {d1!=d2 && d2!=1L},ptd,dim(par))))
       return(paste("Dimension mis-match, expected",pastedims(ptd),
