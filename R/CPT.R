@@ -31,12 +31,12 @@ CPT_Model <-
     },
     deviance = function (datatab) {
       cpt <- self$forward()
-      datatab <- datatab$reshape_(dim(cpt))$add_(cpt,self$ccbias)
-      score <- cpt$log()$mul_(datatab)$sum_(1:2)$neg_()
+      datatab <- datatab$reshape(dim(cpt))$add(cpt,self$ccbias)
+      score <- cpt$log()$mul_(datatab)$sum(1:2)$neg_()
       if (self$abias >0)
-        score <- score$add_(self$rule$aVec$square()$sum_(1)$mul_(self$abias))
+        score <- score$add_(self$rule$aVec$square()$sum(1)$mul_(self$abias))
       if (self$bbias >0)
-        score <- score$add_(self$rule$bVec$square()$sum_(1)$mul_(self$bbias))
+        score <- score$add_(self$rule$bVec$square()$sum(1)$mul_(self$bbias))
       score
     },
     numparams = function () {

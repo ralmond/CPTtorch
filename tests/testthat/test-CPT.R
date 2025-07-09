@@ -153,7 +153,41 @@ test_that("CPT getETFrame", {
 
 
 
-test_that("CPT deviance", {
+test_that("CPT deviance AIC", {
+
+  cpt3 <- CPT_Model$new("Compensatory","PartialCredit",
+                        list(A=c("A1","A2","A3"),B=c("B1","B2","B3")),
+                        c("C1","C2","C3"))
+  aa <- matrix(c(1.1,.9,.9,1.1),2,2)
+  cpt3$aMat <- aa
+  bb <- matrix(c(-.5,.5),2,1)
+  cpt3$bMat <- bb
+
+  cpt <- cpt3$forward()
+  cptarr <- as_array(cpt)
+
+  ## ccbias=0
+  dev <- -sum(log(cptarr))
+  dattab <- torch_ones_like(cpt)
+  cpt3$ccbias <- 0
+  expect_equal(as.numeric(cpt3$deviance(dattab)),dev,tolerance=.00001)
+  expect_equal(as.numeric(cpt3$AIC(dattab)),dev+12,tolerance=.00001)
+
+  ##ccbias = 10
+  dev1 <- -sum((1+10*cptarr)*log(cptarr))
+  cpt3$ccbias <- 10
+  expect_equal(as.numeric(cpt3$deviance(dattab)),dev1,tolerance=.00001)
+
+  ## abias = 1
+  cpt3$abias <- 1
+  expect_equal(as.numeric(cpt3$deviance(dattab)),dev1+sum(log(aa)^2),
+               tolerance=.00001)
+
+  ## bbias
+  cpt3$bbias <-1
+  cpt3$abias <- 0
+  expect_equal(as.numeric(cpt3$deviance(dattab)),dev1+sum((bb)^2),
+               tolerance=.00001)
 
 })
 
@@ -167,7 +201,7 @@ test_that("CPT buildOptimizer", {
 })
 
 
-test_that("CPT set", {
+test_that("CPT step", {
 
 })
 
