@@ -16,11 +16,11 @@ CPT_Model <-
       self$parentVals <- parents
       self$stateNames <- states
       link <- getLink(linktype)
-      if (is.null(link)) abort("Unknown link type",lintype)
+      if (is.null(link)) abort("Unknown link type",linktype)
       self$link <- link$new(length(states),guess,slip,high2low)
 
-      rule <- getLink(ruletype)
-      if (is.null(rule)) abort("Unknown rule type",lintype)
+      rule <- getRule(ruletype)
+      if (is.null(rule)) abort("Unknown rule type",ruletype)
       self$rule <- rule$new(self$parentVals,
                             self$link$etWidth(),
                             QQ,high2low)
@@ -48,20 +48,23 @@ CPT_Model <-
       as_array(self$deviance(datatab)) + 2*self$numparams()
     },
     getCPT = function () {
-      if (is.null(private$cpt)) self$forward(NULL)
-      private$cpt$reshape_(private$shape)
+      if (is.null(private$cpt)) self$forward()
+      private$cpt$reshape(private$shape)
     },
-    getCPFrame = function () {
-      if (is.null(private$cpt)) self$forward(NULL)
-      frame <- data.frame(cartesian_prod(self$parentNames),
+    cptBuiltp = function () {
+      !is.null(private$cpt)
+    },
+    getCPTframe = function () {
+      if (is.null(private$cpt)) self$forward()
+      frame <- data.frame(cartesian_prod(self$parentStates),
                           as_array(private$cpt))
       names(frame) <- c(names(self$parentNames),self$stateNames)
       frame
     },
     getETframe = function () {
-      if (is.null(private$rule)) return(NULL)
-      frame <- getETframe()
-      names(frame) <- c(names(self$parentNames),self$stateNames[1L:ncol(et)])
+      if (is.null(self$rule)) return(NULL)
+      frame <- self$rule$getETframe()
+      names(frame) <- c(names(self$parentNames),self$stateNames[1L:self$link$etWidth()])
       frame
     },
     buildOptimizer = function(constructor=optim_adam, ...) {
@@ -105,32 +108,32 @@ CPT_Model <-
         },
         linkScale = function(value) {
           if (missing(value)) return (self$link$linkScale)
-          self$rule$linkScale <- value
+          self$link$linkScale <- value
           private$cpt <- NULL
           invisible(self)
         },
         slip = function(value) {
           if (missing(value)) return (self$link$slip)
-          if (xor(is.na(value),is.na(self$rule$slip))) {
+          if (xor(is.na(value),is.null(self$link$slip))) {
             self$optimizer <- NULL
             self$lossfn <- NULL
           }
-          self$rule$slip <- value
+          self$link$slip <- value
           private$cpt <- NULL
           invisible(self)
         },
         guess = function(value) {
           if (missing(value)) return (self$link$guess)
-          if (xor(is.na(value),is.na(self$rule$guess))) {
+          if (xor(is.na(value),is.null(self$link$guess))) {
             self$optimizer <- NULL
             self$lossfn <- NULL
           }
-          self$rule$guess <- value
+          self$link$guess <- value
           private$cpt <- NULL
           invisible(self)
         },
         parentVals = function (value) {
-          if (missing(value)) private$parents
+          if (missing(value)) return(private$parents)
           private$parents <- as_Tvallist(value)
           private$shape <- c(sapply(private$parents,length),
                              private$shape[length(private$shape)])
@@ -141,10 +144,13 @@ CPT_Model <-
           invisible(self)
         },
         parentNames = function () {
+          names(private$parents)
+        },
+        parentStates = function() {
           lapply(private$parents,names)
         },
         stateNames = function (value) {
-          if (missing(value)) private$states
+          if (missing(value)) return(private$states)
           if (length(private$states) != length(value)) {
             self$optimizer <- NULL
             self$lossfn <- NULL
@@ -153,9 +159,9 @@ CPT_Model <-
 
           private$shape[length(private$shape)] <- length(value)
           if (!is.null(self$link)) {
-            self$link$K <- length(states)
+            self$link$K <- length(value)
             if (!is.null(self$rule))
-              self$rule$setDim(K=self$rule$etWidth())
+              self$rule$setDim(K=self$link$etWidth())
           }
           private$cpt <- NULL
           invisible(self)
@@ -171,7 +177,7 @@ CPT_Model <-
         },
         high2low = function(value) {
           if (missing(value)) return(self$link$high2low)
-          if (!is.logical(high2low))
+          if (!is.logical(value))
             abort("High2low field must be a logical value.")
           self$optimizer <- NULL
           self$lossfn <- NULL

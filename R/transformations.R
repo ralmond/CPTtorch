@@ -12,7 +12,7 @@ invlogit <- function (x) {1/(1+exp(-x))}
 #torch_sigmoid
 linvlogit <- function (x) {log(1/(1+exp(-x)))}
 probit <- function (p) {qnorm(p)}
-invprobit <- function (x) {qnorm(x)}
+invprobit <- function (x) {pnorm(x)}
 
 logsumexp <- function (x) {log(sum(exp(x)))}
 
