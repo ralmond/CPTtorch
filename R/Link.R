@@ -28,12 +28,12 @@ CPT_Link <- torch::nn_module(
       result <- torch_eye(self$K)
       if (!is.null(self$guessP)) {
         gm <- torch_guessmat(self$K,self$guess)
-        if (self$high2low) gm <- gm$flip_lr()
+        if (self$high2low) gm <- torch_fliplr(gm)
         result <- result$matmul(gm)
       }
       if (!is.null(self$slipP)) {
         sm <- torch_slipmat(self$K,self$slip)
-        if (self$high2low) sm <- sm$flip_lr()
+        if (self$high2low) sm <- torch_fliplr(sm)
         result <- result$matmul(sm)
       }
       result
@@ -47,7 +47,7 @@ CPT_Link <- torch::nn_module(
       }
 
       if (isTRUE(self$high2low))
-        cpt <- cpt$fliplr_()
+        cpt <- torch_fliplr(cpt)
 
       cpt
 

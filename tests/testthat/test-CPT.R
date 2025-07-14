@@ -40,8 +40,10 @@ test_that("CPT forward", {
                         c("C1","C2","C3"))
   cpt3$aMat <- matrix((1:4)/3,2,2)
   cpt3$bMat <- matrix(c(-.9,.9),2,1)
+  expect_false(cpt3$cptBuiltp())
   res <- cpt3$forward()
   expect_equal(dim(res),c(9,3))
+  expect_true(cpt3$cptBuiltp())
 
 })
 
@@ -55,6 +57,10 @@ test_that("CPT aMat", {
   aa <- matrix((1:4)/3,2,2)
   cpt3$aMat <- aa
   expect_equal(as.matrix(cpt3$aMat),aa,tolerance=.00001)
+  cpt3$bMat <- matrix(c(-.9,.9),2,1)
+  res <- cpt3$forward()
+  cpt3$aMat <- aa-.1
+  expect_false(cpt3$cptBuiltp())
 
 
 })
@@ -67,6 +73,11 @@ test_that("CPT bMat", {
   bb <- matrix(c(-.9,.9),2,1)
   cpt3$bMat <- bb
   expect_equal(as.matrix(cpt3$bMat),bb,tolerance=.00001)
+  cpt3$aMat <- matrix((1:4)/3,2,2)
+  res <- cpt3$forward()
+  cpt3$bMat <- bb-.1
+  expect_false(cpt3$cptBuiltp())
+
 
 })
 
@@ -74,6 +85,10 @@ test_that("CPT linkScale", {
   cpt1 <- CPT_Model$new("Center","Normal",list(),c("No","Yes"))
   cpt1$linkScale <- .5
   expect_equal(as.numeric(cpt1$linkScale),.5,tolerance=.00001)
+  cpt1$bMat <- matrix(0,1,1)
+  cpt1$forward()
+  cpt1$linkScale <- .6
+  expect_false(cpt1$cptBuiltp())
 })
 
 
@@ -84,6 +99,16 @@ test_that("CPT slip guess", {
   expect_equal(as.numeric(cpt2$slip),.05,tolerance=.00001)
   cpt2$guess <- .025
   expect_equal(as.numeric(cpt2$guess),.025,tolerance=.00001)
+
+  cpt2$linkScale <- .6
+  cpt2$bMat <- matrix(0,1,1)
+  cpt2$forward()
+  cpt2$slip<-.1
+  expect_false(cpt2$cptBuiltp())
+
+  cpt2$forward()
+  cpt2$guess<-.1
+  expect_false(cpt2$cptBuiltp())
 
 })
 
@@ -99,12 +124,18 @@ test_that("CPT parentVals parentNames", {
   expect_equal(sapply(cpt3$parentVals,sum),c(A=0,B=00),tolerance=.0001)
   expect_equal(cpt3$parentNames,c("A","B"))
   expect_equal(cpt3$parentStates,oldpars)
+  cpt3$aMat <- matrix((1:4)/3,2,2)
+  cpt3$bMat <- matrix(c(-.9,.9),2,1)
+  res <- cpt3$forward()
+
+
   newpars <- list(D=c("D1","D2"),E=c("E1","E2"),F=c("F1","F2"))
   cpt3$parentVals <- newpars
   expect_equal(cpt3$parentStates,newpars)
   expect_equal(cpt3$parentVals,as_Tvallist(newpars),tolerance=.00001)
   expect_equal(dim(cpt3$rule$pTheta),c(8,3))
   expect_equal(dim(cpt3$aMat),c(2,3))
+  expect_false(cpt3$cptBuiltp())
 
 })
 

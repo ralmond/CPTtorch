@@ -100,10 +100,10 @@ CombinationRule <- torch::nn_module(
       qmat <- self$QQ
       bmat <- self$bMat
       if (self$high2low) {
-        amat <- amat$flipud_()
-        bmat <- bmat$flipud_()
+        amat <- torch_flipud(amat)
+        bmat <- torch_flipud(bmat)
         if (!isTRUE(qmat))
-          qmat <- qmat$flipud_()
+          qmat <- torch_flipud(qmat)
       }
       if (!isTRUE(qmat)) {
         exec(self$bop,
@@ -224,9 +224,9 @@ RuleBSA <- torch::nn_module(
       qmat <- self$QQ
       bmat <- self$bMat
       if (self$high2low) {
-        amat <- amat$flipud_()
-        bmat <- bmat$flipud_()
-        qq <- qmat$flipud_()
+        amat <- torch_flipud(amat)
+        bmat <- torch_flipud(bmat)
+        qq <- torch_flipud(qmat)
       }
       if (!isTRUE(qmat)) {
         exec(self$aop,
@@ -267,9 +267,9 @@ RuleBAS <- torch::nn_module(
       qmat <- self$QQ
       bmat <- self$bMat
       if (self$high2low) {
-        amat <- amat$flipud_()
-        bmat <- bmat$flipud_()
-        qq <- qmat$flipud_()
+        amat <- torch_flipud(amat)
+        bmat <- torch_flipud(bmat)
+        qq <- torch_flipud(qmat)
       }
       tmp <- exec(self$aop,
                   exec(self$bop,self$pTheta$reshape(c(dim(self$pTheta),1)),
@@ -307,7 +307,7 @@ RuleConstB <- nn_module(
     classname="RuleConstB",
     inherit = CombinationRule,
     forward = function() {
-      if (self$high2low) return (self$bMat$flipud_())
+      if (self$high2low) return (torch_flipud(self$bMat))
       self$bMat
     },
     private=list(
@@ -342,7 +342,7 @@ RuleConstA <- nn_module(
     classname="RuleConstA",
     inherit = CombinationRule,
     forward = function(input) {
-      if (self$high2low) return (self$aMat$flipud_())
+      if (self$high2low) return (torch_flipud(self$aMat))
       self$aMat
     },
     private=list(
@@ -398,9 +398,9 @@ CompensatoryRule <- torch::nn_module(
       qmat <- self$QQ
       bmat <- self$bMat
       if (self$high2low) {
-        amat <- amat$flipud_()
-        bmat <- bmat$flipud_()
-        qq <- qmat$flipud_()
+        amat <- torch_flipud(amat)
+        bmat <- torch_flipud(bmat)
+        qq <- torch_flipud(qmat)
       }
       if (!isTRUE(qmat)) {
         exec(self$bop,
