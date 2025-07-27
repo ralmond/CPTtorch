@@ -187,3 +187,8 @@ CPT_Model <-
         }
     )
 )
+
+fit2table<- function(model,dattab,maxit=100,tolerance=.0001,log) {
+  
+  
+  
