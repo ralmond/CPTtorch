@@ -1,5 +1,28 @@
 # !diagnostics suppress=self,private,super
 
+deviance_loss <- function(datatab,cpt,ccbias=0) {
+  datatab <- torch_reshape(datatab,dim(cpt))$add(cpt,ccbias)
+  cpt$log()$mul_(datatab)$sum()$neg_()
+}
+penalty_fun = function(params,which,bias) {
+  if (!is.null(params[[which]]))
+    params[[which]]$square()$sum()$mul_(bias)
+  else
+    torch_tensor(0,torch_double())
+}
+
+build_loss_fun <- function (ccbias,penalties) {
+  function(dattab,cpt,params) {
+    result <- deviance_loss(dattab,cpt,ccbias)
+    for (ipar in names(penalties)) {
+      result <- result$add_(
+        penalty_fun(params,ipar,penalties[[ipar]])
+      )
+    }
+    result
+  }
+}
+
 CPT_Model <-
   torch::nn_module(
     classname="CPT_Model",
@@ -7,9 +30,9 @@ CPT_Model <-
     rule=NULL,
     link=NULL,
     ccbias=10,
-    abias=0,
-    bbias=0,
     optimizer=NULL,
+    oconstructor="optim_adam",
+    oparams=list(lr=.1),
     lossfn=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
                           QQ=TRUE,guess=NA,slip=NA,high2low=FALSE) {
@@ -29,20 +52,17 @@ CPT_Model <-
       private$cpt <- self$link$forward(self$rule$forward())
       private$cpt
     },
-    deviance = function (datatab) {
-      cpt <- self$forward()
-      datatab <- datatab$reshape(dim(cpt))$add(cpt,self$ccbias)
-      score <- cpt$log()$mul_(datatab)$sum(1:2)$neg_()
-      if (self$abias >0)
-        score <- score$add_(self$rule$aVec$square()$sum(1)$mul_(self$abias))
-      if (self$bbias >0)
-        score <- score$add_(self$rule$bVec$square()$sum(1)$mul_(self$bbias))
-      score
-    },
     numparams = function () {
       length(self$rule$aVec) + length(self$rule$bVec) +
         length(self$link$sVec) + length(self$link$guessP) +
         length(self$link$slipP)
+    },
+    params = function() {
+      plist <- list(
+      aVec=self$rule$aVec,bVec=self$rule$bVec,
+      sVec=self$link$sVec,gP=self$link$guessP,
+      sP=self$link$sP)
+      plist[!sapply(plist,is.null)]
     },
     AIC = function(datatab) {
       as_array(self$deviance(datatab)) + 2*self$numparams()
@@ -67,21 +87,34 @@ CPT_Model <-
       names(frame) <- c(names(self$parentNames),self$stateNames[1L:self$link$etWidth()])
       frame
     },
-    buildOptimizer = function(constructor=optim_adam, ...) {
+    deviance=function(dattab) {
+      deviance_loss(dattab,self$forward(),self$ccbias)
+    },
+    buildOptimizer = function() {
       self$cache <- NULL
-      self$lossfn <- jit_trace(self$deviance,torch_ones(private$shape))
-      self$optimizer <- exec(constructor,self$parameters(),!!!...)
+      self$lossfn <-
+        jit_trace(build_loss_fun(self$ccbias,
+                                 self$penalities),
+          torch_ones(self$shp),
+          self$forward(),
+          self$params())
+      self$optimizer <-
+        do.call(self$oconstructor,
+                c(list(self$params()),self$oparams))
       self$optimizer
     },
     step = function (datatab,r=1L) {
       if (is.null(self$optimizer)) self$buildOptimizer()
       if (is.null(self$lossfn)) {
         self$cache <- NULL
-        self$lossfn <- jit_trace(self$deviance,datatab)
+        self$lossfn <-
+        jit_trace(build_loss_fun(self$ccbias,self$penalties),
+          datatab,self$forward(),self$params())
       }
       for (rr in 1:r) {
         self$optimizer$zero_grad()
-        self$lossfn(datatab)$backward()
+        self$lossfn(dattab=datatab,self$forward(),
+                    self$params())$backward(retain_graph=TRUE)
         self$optimizer$step()
       }
       self$cache <- NULL
@@ -91,7 +124,9 @@ CPT_Model <-
         parents=list(),
         states=character(),
         shape=c(1L,1L),
-        cpt=NULL
+        cpt=NULL,
+        pbiases=list(aVec=NULL,bVec=NULL,sVec=NULL,
+                     gP=NULL,sP=NULL)
     ),
     active=list(
         aMat = function (value) {
@@ -166,6 +201,9 @@ CPT_Model <-
           private$cpt <- NULL
           invisible(self)
         },
+        shp = function() {
+          as.numeric(private$shape)
+        },
         QQ = function (value) {
           if (is.null(self$rule)) return(NULL)
           if (missing(value)) return(self$rule$QQ)
@@ -184,11 +222,46 @@ CPT_Model <-
           private$cpt <- NULL
           self$link$high2low <- value
           self$rule$high2low <- value
+        },
+        penalties=function(value) {
+          if (missing(value))
+            return(private$pbias[!is.null(private$pbias)])
+          if (!is.list(value))
+            stop("Value must be a list.")
+          private$pbias <- value
         }
     )
 )
 
-fit2table<- function(model,dattab,maxit=100,tolerance=.0001,log) {
-  
-  
-  
+fit2table<- function(model,dattab,
+                     maxit=100L,tolerance=.0001,
+                     stepit=1L,log=NULL) {
+  rit <- 0L
+  model$buildOptimizer()
+  dev <- as.numeric(model$deviance(dattab))
+  if (!is.null(log)) {
+    cat("Cycle:",rit,"Deviance:",dev,"\n")
+    for (pname in log) {
+      print(pname)
+      print(model$params()[[pname]])
+    }
+  }
+  while (rit < maxit) {
+    olddev <- dev
+    dev <- as.numeric(model$step(dattab,stepit))
+    rit <- rit+stepit
+    if (!is.null(log)) {
+      cat("Cycle:",rit,"Deviance:",dev,"\n")
+      for (pname in log) {
+        print(pname)
+        if (pname=="cpt")
+          print(model$getCPT())
+        else
+          print(model$params()[[pname]])
+      }
+    }
+    if (abs(olddev-dev) < tolerance) break
+  }
+  return (rit < maxit)
+}
+

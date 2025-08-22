@@ -117,4 +117,4 @@ export(PotentialLink,StepProbsLink,DifferenceLink,
        SoftmaxLink,GradedResponseLink,PartialCreditLink,
        GaussianLink,SlipLink)
 
-export(CPT_Model)
+export(CPT_Model,fit2table,deviance_loss,penalty_fun)

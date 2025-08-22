@@ -79,13 +79,13 @@ CPT_Link <- torch::nn_module(
        },
        linkScale=function(value) {
           if (missing(value)) {
-            if (is.null(self$scale)) return (NULL)
-            return (tvec2natpar(private$stype,self$scale))
+            if (is.null(self$sVec)) return (NULL)
+            return (tvec2natpar(private$stype,self$sVec))
           }
           pcheck <- checkParam(private$stype,value)
           if (!isTRUE(pcheck))
             stop("Illegal link scale parameter value, ",pcheck,".")
-          self$scale <- nn_parameter(natpar2tvec(private$stype,
+          self$sVec <- nn_parameter(natpar2tvec(private$stype,
                                                 as_torch_tensor(value)))
           invisible(self)
        },
@@ -262,6 +262,8 @@ GaussianLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {1},
     link=function(et) {
+      if (!is(self$linkScale,"torch_tensor"))
+        stop("Link Scale not yet set.")
       pt <- torch_pnorm(torch_sub(self$Cuts,et)$div_(self$linkScale))
       torch_diff(pt,dim=2,prepend=torch_zeros(nrow(et),1),
                  append=torch_ones(nrow(et),1))

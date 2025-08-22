@@ -174,12 +174,15 @@ test_that("PartialCreditLink",{
 
 test_that("GaussianLink",{
   gl <- getLink("Gaussian")$new(3)
-  gl$linkScale <- .5
   et <- matrix(effectiveTheta(3),3,1)
+  expect_error(gl$forward(et))
+
+  gl$linkScale <- .5
   cpt <- gl$forward(et)
   cptt <- CPTtools::normalLink(matrix(et,3,2),.5)[,3:1]
   expect_equal(as.matrix(cpt),cptt,
                tolerance=.00001)
+
 
 })
 

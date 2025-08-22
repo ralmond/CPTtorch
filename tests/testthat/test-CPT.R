@@ -209,16 +209,16 @@ test_that("CPT deviance AIC", {
   cpt3$ccbias <- 10
   expect_equal(as.numeric(cpt3$deviance(dattab)),dev1,tolerance=.00001)
 
-  ## abias = 1
-  cpt3$abias <- 1
-  expect_equal(as.numeric(cpt3$deviance(dattab)),dev1+sum(log(aa)^2),
-               tolerance=.00001)
-
-  ## bbias
-  cpt3$bbias <-1
-  cpt3$abias <- 0
-  expect_equal(as.numeric(cpt3$deviance(dattab)),dev1+sum((bb)^2),
-               tolerance=.00001)
+  # ## abias = 1
+  # cpt3$abias <- 1
+  # expect_equal(as.numeric(cpt3$deviance(dattab)),dev1+sum(log(aa)^2),
+  #              tolerance=.00001)
+  #
+  # ## bbias
+  # cpt3$bbias <-1
+  # cpt3$abias <- 0
+  # expect_equal(as.numeric(cpt3$deviance(dattab)),dev1+sum((bb)^2),
+  #              tolerance=.00001)
 
 })
 
