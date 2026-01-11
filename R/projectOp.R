@@ -157,6 +157,15 @@ genMMtQ.tt <- function(m1,m2,QQ,combOp,summaryOp) {
   result
 }
 
+genMMtQ.ttm <- function(m1,m2,QQ,combOp,summaryOp) {
+  result <- torch_empty(nrow(m1),nrow(m2))
+  QQ <- torch_tensor(QQ)
+  for (cc in 1L:nrow(m2))
+    result[,cc] <- exec(summaryOp,exec(combOp,m1[,QQ[cc,],drop=FALSE],
+                                       m2[cc,QQ[cc,],drop=FALSE]),2)
+  result
+}
+
 ## make_MMtQ <- function(combOp,summaryOp) {
 ##   if (!is.null(getTorchOp(combOp))) combOp <- getTorchOp(combOp)
 ##   if (!is.null(getTorchOp(summaryOp))) combOp <- getTorchOp(summaryOp)
@@ -177,6 +186,7 @@ setGeneric("genMMtQ",function(m1,m2,QQ,combOp,summaryOp)
 setMethod("genMMtQ",c("matrix","matrix","matrix"),genMMtQ.matrix)
 setMethod("genMMtQ",c("torch_tensor","torch_tensor","torch_tensor"),
             genMMtQ.tt)
+setMethod("genMMtQ",c("torch_tensor","torch_tensor","matrix"),genMMtQ.ttm)
 
 
 ## setMMtQ("*","sum",function(m1,m2,QQ)

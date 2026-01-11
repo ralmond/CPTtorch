@@ -406,7 +406,7 @@ CompensatoryRule <- torch::nn_module(
         exec(self$bop,
              genMMtQ(self$pTheta,amat,qmat,
                      self$aop,self$summary),
-             bmat$t_())
+             bmat$t())
       } else {
         ## Using built-in matrix multiplication should be faster
         ##torch_addmm(bmat$neg()$t_(),self$pTheta,amat$t(),alpha=private$rootj)

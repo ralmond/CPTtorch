@@ -78,13 +78,19 @@ CPT_Model <-
       if (is.null(private$cpt)) self$forward()
       frame <- data.frame(cartesian_prod(self$parentStates),
                           as_array(private$cpt))
-      names(frame) <- c(names(self$parentNames),self$stateNames)
+      if (is.character(self$parentNames))
+        names(frame) <- c(self$parentNames,self$stateNames)
+      else
+        names(frame) <- c(names(self$parentNames),self$stateNames)
       frame
     },
     getETframe = function () {
       if (is.null(self$rule)) return(NULL)
       frame <- self$rule$getETframe()
-      names(frame) <- c(names(self$parentNames),self$stateNames[1L:self$link$etWidth()])
+      if (is.character(self$parentNames))
+        names(frame) <- c(self$parentNames,self$stateNames[1L:self$link$etWidth()])
+      else
+        names(frame) <- c(names(self$parentNames),self$stateNames[1L:self$link$etWidth()])
       frame
     },
     deviance=function(dattab) {
