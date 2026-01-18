@@ -9,18 +9,28 @@ deviance_loss_T <- function(Phi_I, cpt, ccbias=0) {
   cpt$log()$mul_(Phi_tilde)$sum()$mul_(-2)
 }
 
-cdm_loss_fun <- function(phi_0, Phi_I0, phi_js, Phi_Ijs,
-                         ccbias=0, penalties=list()) {
+cdm_loss_fun <- function(phi_0, Phi_I0, phi_js, Phi_Ijs, ccbias) {
   loss <- deviance_loss_T(Phi_I0, phi_0, ccbias)
 
-  for (j in names(Phi_Ijs)) {
+  for (j in 1:length(Phi_Ijs)) {
     loss$add_(deviance_loss_T(Phi_Ijs[[j]], phi_js[[j]], ccbias))
   }
-
-  for (ipar in names(penalties))
-    loss$add_(penalty_fun(params,ipar,penalties[[ipar]]))
-
   loss
+}
+
+build_loss_fun_cdm <- function (ccbias, penalties) {
+  function(model, task_scores, params) {
+    fwd_out <- model$forward(task_scores)
+
+    loss <- cdm_loss_fun(fwd_out$phi_0, fwd_out$Phi_I0,
+                         fwd_out$phi_js, fwd_out$Phi_Ijs,
+                         ccbias)
+
+    for (ipar in names(penalties))
+      loss$add_(penalty_fun(params,ipar,penalties[[ipar]]))
+
+    loss
+  }
 }
 
 Cognitively_Diagnostic_Model <-
@@ -29,7 +39,7 @@ Cognitively_Diagnostic_Model <-
     ccbias=10,
     optimizer=NULL,
     oconstructor="optim_adam",
-    oparams=list(lr=.1),
+    oparams=list(lr=0.02),
     lossfn=NULL,
     initialize = function(ruletype,linktype,q_matrix,latent_skill_levels=list(),scoring_states=list(),
                           guess=NA,slip=NA,high2low=FALSE) {
@@ -43,7 +53,7 @@ Cognitively_Diagnostic_Model <-
 
       n_levels_per_latent_skill <- sapply(latent_skill_levels, length)
       self$latent_skills_per_task <- rowSums(q_matrix, na.rm=TRUE)
-      self$proficiency_potential <- torch_ones(n_levels_per_latent_skill, requires_grad=TRUE)
+      self$proficiency_potential <- nn_parameter(torch_ones(n_levels_per_latent_skill, requires_grad=TRUE))
       # given the i'th row of the Q matrix, create a function to marginalize out all latent vars where the row is FALSE
       self$marginalize_ops <- lapply(1:self$n_tasks,
         function(i) {function(pot) {if (all(q_matrix[i,])) {pot} else {marginalize(pot, dim=which(!q_matrix[i,]))}}}
@@ -91,24 +101,25 @@ Cognitively_Diagnostic_Model <-
       }
 
       # Next, get the global statistics
-      phi_0 <- self$proficiency_potential
+      phi_0 <- normalize_tensor(self$proficiency_potential)
       Phi_I0 <- torch_zeros_like(phi_0, requires_grad=FALSE)
       for (normed_stu_i_proficiencies in normed_stu_proficiencies) {
         Phi_I0$add_(normed_stu_i_proficiencies)
       }
 
       # Finally, get the task-specific statistics
-      phi_js <- model_CPTs
-      Phi_Ijs <- lapply(j:self$n_tasks, function(j) {
+      phi_js <- lapply(model_CPTs, normalize_tensor)
+      Phi_Ijs <- lapply(1:self$n_tasks, function(j) {
         Phi_j <- torch_stack(
           lapply(1:length(self$scoring_states[[j]]), function(k) {
             Phi_jk <- 0
             for (i in 1:n_stus)
-              if (isTRUE(task_scores[i,j]==k))
-                Phi_jk <- self$marginalize_ops[[j]](normed_stu_proficiencies[[i]])$add(Phi_jk)
+              if (isTRUE(task_scores[i,j]==k)) {
+                Phi_jk = self$marginalize_ops[[j]](normed_stu_proficiencies[[i]])$add(Phi_jk)
+              }
             return(Phi_jk)
           }
-          ), dim=length(self$scoring_states[j])+1
+          ), dim=sum(aced_model$q_matrix[j,])+1
         )
       })
 
@@ -158,15 +169,12 @@ Cognitively_Diagnostic_Model <-
     AIC = function(datatab) {
       as_array(self$deviance(datatab)) + 2*self$numparams()
     },
-    deviance=function(dattab) {
-      deviance_loss(dattab,self$forward(),self$ccbias)
-    },
     buildOptimizer = function() {
       self$cache <- NULL
       self$lossfn <-
-        jit_trace(build_loss_fun(self$ccbias,
-                                 self$penalities),
-                  self$forward(),
+        jit_trace(build_loss_fun_cdm(self$ccbias, self$penalities),
+                  self,
+                  torch_ones(1, self$n_tasks),
                   self$params())
       self$optimizer <-
         do.call(self$oconstructor,
@@ -178,7 +186,7 @@ Cognitively_Diagnostic_Model <-
       if (is.null(self$lossfn)) {
         self$cache <- NULL
         self$lossfn <-
-          jit_trace(build_loss_fun(self$ccbias,self$penalties),
+          jit_trace(build_loss_fun_cdm(self$ccbias,self$penalties),
                     datatab,self$forward(),self$params())
       }
       for (rr in 1:r) {
@@ -193,7 +201,7 @@ Cognitively_Diagnostic_Model <-
   )
 
 fit_with_EM <- function(model, task_scores, penalties=list(),
-                        maxit=100L, tolerance=.0001) {
+                        maxit=100L, tolerance=0.01) {
   if (!is.matrix(task_scores) || !is.integer(task_scores))
     stop("Error `task_scores` must be an integer matrix (NAs allowed, see docstring for forward())")
   stopifnot("Error: 2nd dim of task_scores must equal # of tasks set during model initialization"=dim(task_scores)[2]==model$n_tasks)
@@ -205,28 +213,31 @@ fit_with_EM <- function(model, task_scores, penalties=list(),
   loss_hist <- rep(NA, maxit)
   optimizer <- do.call(model$oconstructor,
             list(params=model$params(), lr=model$oparams$lr))
+  scheduler <- lr_step(optimizer, step_size = 20, gamma = 0.5)
 
+  # browser()
   while (rit < maxit) {
     # E step
-    stu_and_evidence_potentials <- model$forward(task_scores)
+    stu_and_ev_potentials <- model$forward(task_scores)
 
     # M step
     optimizer$zero_grad()
-    loss <- cdm_loss_fun(stu_and_evidence_potentials$phi_0,
-                         stu_and_evidence_potentials$Phi_I0,
-                         stu_and_evidence_potentials$phi_js,
-                         stu_and_evidence_potentials$Phi_Ijs,
+    loss <- cdm_loss_fun(stu_and_ev_potentials$phi_0, stu_and_ev_potentials$Phi_I0,
+                         stu_and_ev_potentials$phi_js, stu_and_ev_potentials$Phi_Ijs,
                          model$ccbias)#, model$penalties)
-    loss_val <- loss$item()
     loss$backward(retain_graph=TRUE)
     optimizer$step()
+    scheduler$step()
 
     rit <- rit+1
+    loss_val <- loss$item()
     loss_hist[rit] <- loss_val
-    if (abs(old_loss-loss_hist[rit]) < tolerance)
+
+    print(paste('TRAINING ITER', rit, 'loss:', round(loss_val, 4),
+                'delta loss', round(old_loss-loss_val, 4)))
+    if (abs(old_loss-loss_val) < tolerance)
       break
     old_loss <- loss_val
-    print(paste0('TRAINING ITER ', rit, ' loss: ', old_loss))
   }
   print(paste0(rit,'/',maxit,' iters taken'))
   print(paste0('min loss diff b/w iters ', min(rit[2:rit]-rit[1:(rit-1)])))

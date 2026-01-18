@@ -73,13 +73,13 @@ CombinationRule <- torch::nn_module(
         adim <- pTypeDim(private$atype)
         private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
         if (!isTRUE(all.equal(adim,pTypeDim(private$atype))))
-           self$aMat <- defaultParameter10(private$atype)
+           self$aMat <- nn_parameter(defaultParameter10(private$atype))
       }
       if (!is.null(private$btype)) {
         bdim <- pTypeDim(private$btype)
         private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
         if (!isTRUE(all.equal(bdim,pTypeDim(private$btype))))
-           self$bMat <- defaultParameter10(private$btype)
+           self$bMat <- nn_parameter(defaultParameter10(private$btype))
       }
       invisible(self)
     },
@@ -89,10 +89,10 @@ CombinationRule <- torch::nn_module(
       self$QQ <- QQ
       self$high2low <- high2low
       if (!is.null(self$aType)) {
-        self$aMat <- defaultParameter10(private$atype)
+        self$aMat <- nn_parameter(defaultParameter10(private$atype))
       }
       if (!is.null(self$bType)) {
-        self$bMat <- defaultParameter10(private$btype)
+        self$bMat <-nn_parameter(defaultParameter10(private$btype))
       }
     },
     forward = function() {
@@ -146,7 +146,7 @@ CombinationRule <- torch::nn_module(
           private$atype <- value
           if (!is.null(private$SJK)) {
             private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
-            self$aMat <- defaultParameter10(private$atype)
+            self$aMat <- nn_parameter(defaultParameter10(private$atype))
           }
           invisible(self)
         },
@@ -157,7 +157,7 @@ CombinationRule <- torch::nn_module(
           private$btype <- value
           if (!is.null(private$SJK)) {
             private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
-            self$bMat <- defaultParameter10(private$btype)
+            self$bMat <- nn_parameter(defaultParameter10(private$btype))
           invisible(self)
           }
         },

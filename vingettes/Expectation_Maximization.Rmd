@@ -1,0 +1,88 @@
+---
+title: "Expectation_Maximization"
+output: html_document
+---
+
+# EM Algo with `Cognitively_Diagnostic_Model`
+We investigate learning the parameters of a Cognitively Diagnostic Model as described in `./vingettes/CPTmodels.qmd`.
+
+## The ACED Dataset
+ACED [Shute. Hansen, and Almond 2008](https://doi.org/10.3233/IRG-2008-18(4)02) was a computer adaptive test designed with feedback after items were scored.
+
+We load the ACED scores and exam design metadata (e.g., Q-matrix) from the [CPTtools data repository](https://github.com/ralmond/CPTtools/tree/master/data/).
+
+```{r}
+library(CPTtorch)
+load('../data/ACED.Rdata')
+
+latent_skill_names <- colnames(ACED.Qmatrix)
+task_names <- rownames(ACED.Qmatrix)
+
+# there are 2 possible scores {incorrect, correct} for all ACED items
+NUM_SCORING_STRATA <- 2
+```
+
+Let's assume that all latent skills have 3 ability strata
+```{r}
+NUM_STATES_PER_SKILL <- 3
+```
+
+After making labels for these states, we will be ready for modeling
+```{r}
+latent_skill_levels <- lapply(latent_skill_names, function(s) paste0(s, "_", 1:NUM_STATES_PER_SKILL))
+scoring_states <- lapply(task_names, function(name) paste0(name, "_", c("incorr", "corr")))
+```
+
+## Defining our Model
+We choose the default compensatory rule and partial credit links (see `./vingettes/CPTmodels.qmd` for more details).
+```{r}
+aced_model <- Cognitively_Diagnostic_Model(
+  "Compensatory", "PartialCredit", ACED.Qmatrix, latent_skill_levels, scoring_states
+)
+```
+
+`Cognitively_Diagnostic_Model`s expect evidence as a matrix $E \in \{\mathbb{Z}, NA\}^{n_{students} \times n_{tasks}}$.
+More specifically, if student $i$ has not attempted task $j$, then $E_{ij} = NA$.
+If student $i$ attained the $k^{th}$ lowest score on task $j$, then $E_{ij} = k$.
+(Note that if the parameter `high2low` was passed into `aced_model`'s constructor and `highg2low[j]=True`, then $E_{ij} = k$ corresponds to student $i$ attaining the $k^{th}$ **highest** score on task $j$)
+
+
+The matrix `ACED.items` almost matches this format, but not-attempted, incorrect, and correct scores are saved as `NA, 0, 1` and not the desired `NA, 1, 2`.
+Since an incorrect score (stored as 0) corresponds to the 1st outcome state of `scoring_states[[j]]` (and correct, stored as 1, corresponds to the 2nd outcome state) $\forall j \in J$, we define `{r} task_scores`, $E$, as such:
+```{r}
+task_scores <- ACED.items[,4:66]
+task_scores[] <- lapply(task_scores, function(x) as.integer(x))
+task_scores <- as.matrix(task_scores)+1L
+```
+
+We can now calculate the expected contingency table (prior evidence)
+```{r}
+start.time <- Sys.time()
+Phi_0_ser <- aced_model$get_expected_contingency(task_scores)
+end.time <- Sys.time()
+print(dim(Phi_0_ser))
+print(paste0('Time taken to get prior Contingency Table ', round(end.time-start.time, 2)))
+```
+
+$\Phi_{I0}$ has dimension `r dim(Phi_I0)` and sum `r as.numeric(torch_sum(Phi_I0))` = number of students `r dim(ACED.items)[1]`
+
+We can find the prior/task specific CPTs and evidence tables with a forward pass through our `Cognitively_Diagnostic_Model`
+```{r}
+start.time <- Sys.time()
+fwd_out <- aced_model(task_scores)
+end.time <- Sys.time()
+print(paste0('Time taken for one forward pass ', round(end.time-start.time, 2)))
+```
+
+## Training our Model
+\textcolor{red}{Still Under Development: esp, needs testing}
+
+We can use the `fit_with_EM()` function to train our model.
+```{r}
+start.time <- Sys.time()
+fit_with_EM(aced_model, task_scores)
+end.time <- Sys.time()
+print(paste0('Time taken for training ', round(end.time-start.time, 2)))
+```
+
+## Validating our Model
