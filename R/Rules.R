@@ -410,8 +410,8 @@ CompensatoryRule <- torch::nn_module(
       } else {
         ## Using built-in matrix multiplication should be faster
         ##torch_addmm(bmat$neg()$t_(),self$pTheta,amat$t(),alpha=private$rootj)
-        torch_add(bmat$neg()$t_(),
-                  torch_matmul(self$pTheta,amat$t())$mul_(private$rootj))
+        torch_add(bmat$neg()$t(),
+                  torch_matmul(self$pTheta,amat$t())$mul(private$rootj))
       }
     }
 )

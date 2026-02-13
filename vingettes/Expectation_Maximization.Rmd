@@ -55,34 +55,50 @@ task_scores[] <- lapply(task_scores, function(x) as.integer(x))
 task_scores <- as.matrix(task_scores)+1L
 ```
 
-We can now calculate the expected contingency table (prior evidence)
+### Understanding model functions
+
+When we just want to view (as opposed to train) the model's states/behavior, we set the `torch`'s evaluation flag.
+```{r}
+aced_model$eval()
+```
+
+We can now calculate the expected global and task-specific contingency tables $\Phi_{I0}, \{\Phi_{Ij}\}_{j=1}^J$
 ```{r}
 start.time <- Sys.time()
-Phi_0_ser <- aced_model$get_expected_contingency(task_scores)
+exp_CPTs <- aced_model$get_expected_contingency_tables(task_scores)
 end.time <- Sys.time()
-print(dim(Phi_0_ser))
+print(dim(exp_CPTs$Phi_I0))
 print(paste0('Time taken to get prior Contingency Table ', round(end.time-start.time, 2)))
 ```
 
 $\Phi_{I0}$ has dimension `r dim(Phi_I0)` and sum `r as.numeric(torch_sum(Phi_I0))` = number of students `r dim(ACED.items)[1]`
 
-We can find the prior/task specific CPTs and evidence tables with a forward pass through our `Cognitively_Diagnostic_Model`
+We can find the task specific CPTs $\{\phi_{j}\}_{j=1}^J$ by calling `r get_evidence_CPTs()` `Cognitively_Diagnostic_Model`
 ```{r}
 start.time <- Sys.time()
-fwd_out <- aced_model(task_scores)
+task_CPTs <- aced_model$get_evidence_CPTs()
 end.time <- Sys.time()
 print(paste0('Time taken for one forward pass ', round(end.time-start.time, 2)))
 ```
 
 ## Training our Model
-\textcolor{red}{Still Under Development: esp, needs testing}
+\textcolor{red}{Still Under Development: esp, needs speedup/validation}
+Now we set the `torch`'s train flag.
+```{r}
+aced_model$train()
+```
 
-We can use the `fit_with_EM()` function to train our model.
+We can use the `r fit_with_EM()` function to train our model.
 ```{r}
 start.time <- Sys.time()
 fit_with_EM(aced_model, task_scores)
 end.time <- Sys.time()
-print(paste0('Time taken for training ', round(end.time-start.time, 2)))
+print(paste0('Time taken for training ', difftime(start.time, end.time, 'secs')))
+```
+
+To save our trained model, we can call `r torch_save()`:
+```{r}
+torch_save(aced_model$state_dict(), "trained_aced_model.pt")
 ```
 
 ## Validating our Model

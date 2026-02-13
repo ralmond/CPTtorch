@@ -23,8 +23,7 @@ build_loss_fun <- function (ccbias,penalties) {
   }
 }
 
-CPT_Model <-
-  torch::nn_module(
+CPT_Model <- nn_module(
     classname="CPT_Model",
 #    inherit=nn_Module,
     rule=NULL,
@@ -51,6 +50,14 @@ CPT_Model <-
     forward = function () {
       private$cpt <- self$link$forward(self$rule$forward())
       private$cpt
+    },
+    train = function() {
+      super$train()
+      private$cpt <- NULL
+    },
+    eval = function() {
+      super$eval()
+      private$cpt <- NULL
     },
     numparams = function () {
       length(self$rule$aVec) + length(self$rule$bVec) +
