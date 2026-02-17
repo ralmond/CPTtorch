@@ -185,7 +185,7 @@ cuts2simplex <- function (et) {
       torch_hstack(list(torch_zeros(nrow(et),1),et,
                         torch_ones(nrow(et),1))),
       2)[[1]],
-    dim=2)$clip_(0,1)
+    dim=2)$clip(0,1)
 }
 
 DifferenceLink <- torch::nn_module(
@@ -227,7 +227,7 @@ GradedResponseLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
-      cuts2simplex(nnf_sigmoid(et$mul_(self$D)))
+      cuts2simplex(nnf_sigmoid(et$mul(self$D)))
     },
     private=list(
       stype=NULL

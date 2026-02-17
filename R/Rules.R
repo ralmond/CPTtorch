@@ -96,9 +96,9 @@ CombinationRule <- torch::nn_module(
       }
     },
     forward = function() {
-      amat <- self$aMat
+      amat <- self$aMat$clone()
       qmat <- self$QQ
-      bmat <- self$bMat
+      bmat <- self$bMat$clone()
       if (self$high2low) {
         amat <- torch_flipud(amat)
         bmat <- torch_flipud(bmat)
@@ -109,12 +109,12 @@ CombinationRule <- torch::nn_module(
         exec(self$bop,
              genMMtQ(self$pTheta,amat,qmat,
                      self$aop,self$summary),
-             bmat$t_())
+             bmat$t())
       } else {
         exec(self$bop,
              genMMt(self$pTheta,amat,
                     self$aop,self$summary),
-             bmat$t_())
+             bmat$t())
       }
     },
     getETframe = function () {
@@ -220,9 +220,9 @@ RuleBSA <- torch::nn_module(
     summary ="torch_amax",
     bop = "torch_sub",
     forward = function() {
-      amat <- self$aMat
+      amat <- self$aMat$clone()
       qmat <- self$QQ
-      bmat <- self$bMat
+      bmat <- self$bMat$clone()
       if (self$high2low) {
         amat <- torch_flipud(amat)
         bmat <- torch_flipud(bmat)
@@ -232,12 +232,12 @@ RuleBSA <- torch::nn_module(
         exec(self$aop,
              genMMtQ(self$pTheta,bmat,qmat,
                      self$bop,self$summary),
-             amat$t_())
+             amat$t())
       } else {
         exec(self$aop,
              genMMt(self$pTheta,bmat,
                     self$bop,self$summary),
-             amat$t_())
+             amat$t())
       }
     },
     private=list(
