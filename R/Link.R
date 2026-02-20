@@ -227,7 +227,7 @@ GradedResponseLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
-      cuts2simplex(nnf_sigmoid(et$mul(self$D)))
+      cuts2simplex(nnf_sigmoid(et$mul(-self$D)))
     },
     private=list(
       stype=NULL
