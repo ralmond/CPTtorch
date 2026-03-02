@@ -37,7 +37,8 @@ scoring_states <- lapply(task_names, function(name) paste0(name, "_", c("incorr"
 We choose the default compensatory rule and partial credit links (see `./vingettes/CPTmodels.qmd` for more details).
 ```{r}
 aced_model <- Cognitively_Diagnostic_Model(
-  "Compensatory", "PartialCredit", ACED.Qmatrix, latent_skill_levels, scoring_states
+  "Compensatory", "PartialCredit", ACED.Qmatrix, latent_skill_levels, scoring_states,
+  device=torch_device("cpu")
 )
 ```
 
@@ -68,7 +69,7 @@ start.time <- Sys.time()
 exp_CPTs <- aced_model$get_expected_contingency_tables(task_scores)
 end.time <- Sys.time()
 print(dim(exp_CPTs$Phi_I0))
-print(paste0('Time taken to get prior Contingency Table ', round(end.time-start.time, 2)))
+print(paste0('Time taken to get prior Contingency Table (secs) ', difftime(end.time, start.time, units='secs')))
 ```
 
 $\Phi_{I0}$ has dimension `r dim(Phi_I0)` and sum `r as.numeric(torch_sum(Phi_I0))` = number of students `r dim(ACED.items)[1]`
@@ -78,11 +79,11 @@ We can find the task specific CPTs $\{\phi_{j}\}_{j=1}^J$ by calling `r get_evid
 start.time <- Sys.time()
 task_CPTs <- aced_model$get_evidence_CPTs()
 end.time <- Sys.time()
-print(paste0('Time taken for one forward pass ', round(end.time-start.time, 2)))
+print(paste0('Time taken for one forward pass (secs) ', difftime(end.time, start.time, units='secs')))
 ```
 
 ## Training our Model
-\textcolor{red}{Still Under Development: esp, needs speedup/validation}
+\textcolor{red}{Still Under Development: esp, needs GPU speedup/validation}
 Now we set the `torch`'s train flag.
 ```{r}
 aced_model$train()
@@ -91,9 +92,9 @@ aced_model$train()
 We can use the `r fit_with_EM()` function to train our model.
 ```{r}
 start.time <- Sys.time()
-fit_with_EM(aced_model, task_scores)
+fit_with_EM(aced_model, task_scores, maxit=200L, tolerance=0.1)
 end.time <- Sys.time()
-print(paste0('Time taken for training ', difftime(start.time, end.time, 'secs')))
+print(paste0('Time taken for training (secs) ', difftime(end.time, start.time, units='secs')))
 ```
 
 To save our trained model, we can call `r torch_save()`:

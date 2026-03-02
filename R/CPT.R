@@ -2,7 +2,7 @@
 
 deviance_loss <- function(datatab,cpt,ccbias=0) {
   datatab <- torch_reshape(datatab,dim(cpt))$add(cpt,ccbias)
-  cpt$log()$mul_(datatab)$sum()$neg_()
+  cpt$log()$mul_(datatab)$sum()$mul(-2)
 }
 penalty_fun = function(params,which,bias) {
   if (!is.null(params[[which]]))
@@ -51,12 +51,8 @@ CPT_Model <- nn_module(
       private$cpt <- self$link$forward(self$rule$forward())
       private$cpt
     },
-    train = function() {
-      super$train()
-      private$cpt <- NULL
-    },
-    eval = function() {
-      super$eval()
+    train = function(mode=TRUE) {
+      super$train(mode)
       private$cpt <- NULL
     },
     numparams = function () {
