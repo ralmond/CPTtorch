@@ -2,7 +2,7 @@
 ## Primitive Link functions
 
 as_torch_tensor <- function (x) {UseMethod("as_torch_tensor")}
-as_torch_tensor.numeric <- function(x) {torch_tensor(x,dtype=torch_float())}
+as_torch_tensor.numeric <- function(x) {torch_tensor(x,dtype=torch_float(),device=TORCH_DEVICE)}
 as_torch_tensor.torch_tensor <- function(x) {x}
 
 
@@ -82,8 +82,8 @@ invstickbreak <- function (q) {
 }
 
 torch_invstickbreak <- function (q) {
-  qq <- torch_cat(torch_tensor(1),q)$cumprod_()
-  p <- qq$mul_(torch_cat(torch_neg(q)$add_(1),torch_tensor(1)))
+  qq <- torch_cat(torch_tensor(1, device=q$device),q)$cumprod_()
+  p <- qq$mul_(torch_cat(torch_neg(q)$add_(1),torch_tensor(1, device=q$device)))
   p[-p] <- p[-p]$neg_()$add_(1)
   p
 }
@@ -297,9 +297,9 @@ guessmat <- function(n,g) {
 }
 
 torch_guessmat <- function(n,g) {
-  mat <- torch_zeros(n,n)
+  mat <- torch_zeros(n,n,device=g$device)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,g$pow(offset)),
+    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,g$pow(offset),device=g$device),
                                      offset))
   mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
 }
@@ -313,9 +313,9 @@ slipmat <- function(n,s) {
 }
 
 torch_slipmat <- function(n,s) {
-  mat <- torch_zeros(n,n)
+  mat <- torch_zeros(n,n,device=s$device)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,s$pow(offset)),
+    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,s$pow(offset),device=s$device),
                                      -offset))
   mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
 }

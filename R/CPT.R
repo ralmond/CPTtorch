@@ -8,7 +8,7 @@ penalty_fun = function(params,which,bias) {
   if (!is.null(params[[which]]))
     params[[which]]$square()$sum()$mul_(bias)
   else
-    torch_tensor(0,torch_double())
+    torch_tensor(0,torch_double(),device=TORCH_DEVICE)
 }
 
 build_loss_fun <- function (ccbias,penalties) {

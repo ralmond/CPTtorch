@@ -35,6 +35,6 @@ Suggests:
     withr,
     kableExtra,
     testthat (>= 3.0.0)
-Collate:  transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R zzz.R
+Collate:  zzz.R transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R
 VignetteBuilder: knitr
 Config/testthat/edition: 3

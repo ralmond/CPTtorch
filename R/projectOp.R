@@ -109,7 +109,7 @@ genMMt.matrix <- function(m1,m2,combOp,summaryOp) {
 
 
 genMMt.tt <- function(m1,m2,combOp,summaryOp) {
-  result <- torch_empty(nrow(m1),nrow(m2))
+  result <- torch_empty(nrow(m1),nrow(m2),device=m1$device)
   for (cc in 1L:nrow(m2))
     result[,cc] <- exec(summaryOp,exec(combOp,m1,m2[cc,]),2)
   result
@@ -150,7 +150,7 @@ genMMtQ.matrix <- function(m1,m2,QQ,combOp,summaryOp) {
 
 
 genMMtQ.tt <- function(m1,m2,QQ,combOp,summaryOp) {
-  result <- torch_empty(nrow(m1),nrow(m2))
+  result <- torch_empty(nrow(m1),nrow(m2),device=m1$device)
   for (cc in 1L:nrow(m2))
     result[,cc] <- exec(summaryOp,exec(combOp,m1[,QQ[cc,],drop=FALSE],
                                               m2[cc,QQ[cc,],drop=FALSE]),2)
@@ -158,7 +158,7 @@ genMMtQ.tt <- function(m1,m2,QQ,combOp,summaryOp) {
 }
 
 genMMtQ.ttm <- function(m1,m2,QQ,combOp,summaryOp) {
-  result <- torch_empty(nrow(m1),nrow(m2))
+  result <- torch_empty(nrow(m1),nrow(m2),device=m1$device)
   QQ <- torch_tensor(QQ)
   for (cc in 1L:nrow(m2))
     result[,cc] <- exec(summaryOp,exec(combOp,m1[,QQ[cc,],drop=FALSE],

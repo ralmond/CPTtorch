@@ -69,17 +69,17 @@ start.time <- Sys.time()
 exp_CPTs <- aced_model$get_expected_contingency_tables(task_scores)
 end.time <- Sys.time()
 print(dim(exp_CPTs$Phi_I0))
-print(paste0('Time taken to get prior Contingency Table (secs) ', difftime(end.time, start.time, units='secs')))
+print(paste0('Time taken to get prior Contingency Table (sec) ', difftime(end.time, start.time, units='secs')))
 ```
 
-$\Phi_{I0}$ has dimension `r dim(Phi_I0)` and sum `r as.numeric(torch_sum(Phi_I0))` = number of students `r dim(ACED.items)[1]`
+$\Phi_{I0}$ has dimension `r dim(exp_CPTs$Phi_I0)` and sum `r as.numeric(torch_sum(exp_CPTs$Phi_I0))` = number of students `r dim(ACED.items)[1]`
 
-We can find the task specific CPTs $\{\phi_{j}\}_{j=1}^J$ by calling `r get_evidence_CPTs()` `Cognitively_Diagnostic_Model`
+We can find the task specific CPTs $\{\phi_{j}\}_{j=1}^J$ by calling `get_evidence_CPTs()` `Cognitively_Diagnostic_Model`
 ```{r}
 start.time <- Sys.time()
 task_CPTs <- aced_model$get_evidence_CPTs()
 end.time <- Sys.time()
-print(paste0('Time taken for one forward pass (secs) ', difftime(end.time, start.time, units='secs')))
+print(paste0('Time taken for one forward pass (sec) ', difftime(end.time, start.time, units='secs')))
 ```
 
 ## Training our Model
@@ -94,7 +94,7 @@ We can use the `r fit_with_EM()` function to train our model.
 start.time <- Sys.time()
 fit_with_EM(aced_model, task_scores, maxit=200L, tolerance=0.1)
 end.time <- Sys.time()
-print(paste0('Time taken for training (secs) ', difftime(end.time, start.time, units='secs')))
+print(paste0('Time taken for training (sec) ', difftime(end.time, start.time, units='secs')))
 ```
 
 To save our trained model, we can call `r torch_save()`:
@@ -103,3 +103,13 @@ torch_save(aced_model$state_dict(), "trained_aced_model.pt")
 ```
 
 ## Validating our Model
+```{r}
+for (i in 1:length(aced_model$evidence_models)) {
+  print(c("Model", i))
+  print('  A')
+  print(aced_model$evidence_models[[i]]$aMat)
+  print('  B')
+  print(aced_model$evidence_models[[i]]$bMat)
+  print('')
+}
+```

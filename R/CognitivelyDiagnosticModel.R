@@ -8,7 +8,7 @@ normalize_tensor <- function(t) {
 
 deviance_loss_T <- function(Phi_I, cpt, ccbias=0) {
   Phi_tilde <- Phi_I$add(cpt, alpha=ccbias)
-  # return perplexity (vs log-likelihood) by dividing by Phi_I$sum() =
+  # return perplexity (mean log-likelihood) by dividing by Phi_I$sum() by the
   #   number of effective students (more "students" are added to Phi_0 due to bin_eps)
   cpt$log()$mul(Phi_tilde)$sum()$mul(-2)$div(Phi_I$sum())
 }
@@ -41,7 +41,7 @@ build_obs_index <- function(task_scores) {
 Cognitively_Diagnostic_Model <- nn_module(
     classname="Cognitively_Diagnostic_Model",
     ccbias=10,
-    bin_eps=1e-10,
+    bin_eps=2^-35,
     optimizer=NULL,
     oconstructor="optim_adam",
     oparams=list(lr=0.001),
@@ -157,7 +157,7 @@ Cognitively_Diagnostic_Model <- nn_module(
               # No student got this score: return a zero tensor of correct shape.
               keep_dims <- setdiff(seq_along(skill_dims), marg_dims)
               out_shape  <- if (length(keep_dims) > 0) skill_dims[keep_dims] else 1L
-              return(torch_zeros(out_shape, device = self$device))
+              return(torch_zeros(out_shape, device=self$device))
             }
             # marginalize out irrelevant skill dims
             stu_sum <- normed_posteriors[stus_k, .., drop = FALSE]$sum(dim = 1L)

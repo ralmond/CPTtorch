@@ -8,15 +8,15 @@ effectiveTheta <- function (nlevels,high2low=FALSE) {
   if (high2low) rev(et)
   else et
 }
-effectiveTheta10 <- function (nlevels,high2low=FALSE) {
-  torch_tensor(effectiveTheta(nlevels,high2low))
+effectiveTheta10 <- function (nlevels,high2low=FALSE,device=TORCH_DEVICE) {
+  torch_tensor(effectiveTheta(nlevels,high2low),device=device)
 }
 
 
-buildpTheta10 <- function(Tvallist) {
-  if (length(Tvallist)==0L) return(torch_tensor(0.0))
-  if (length(Tvallist)==1L) return(torch_reshape(torch_tensor(Tvallist[[1]]),c(-1,1)))
-  return(torch_cartesian_prod(lapply(Tvallist,as_torch_tensor)))
+buildpTheta10 <- function(Tvallist,device=TORCH_DEVICE) {
+  if (length(Tvallist)==0L) return(torch_tensor(0.0,device=device))
+  if (length(Tvallist)==1L) return(torch_reshape(torch_tensor(Tvallist[[1]],device=device),c(-1,1)))
+  return(torch_cartesian_prod(lapply(Tvallist, function(x) as_torch_tensor(x)$to(device=device))))
 }
 
 cartesian_prod <- function (list_o_vecs)
@@ -60,6 +60,7 @@ CombinationRule <- torch::nn_module(
     bop = "torch_add",
     aVec = NULL,
     bVec = NULL,
+    device=TORCH_DEVICE,
     setParents = function(parents) {
       self$pTheta <- buildpTheta10(parents)
       self$pNames <- lapply(parents,names)
@@ -278,7 +279,7 @@ RuleBAS <- torch::nn_module(
       if (isTRUE(qmat)) {
         return(exec(self$summary,tmp,2))
       } else {
-        result <- torch_empty(private$SJK[c("S","K")])
+        result <- torch_empty(private$SJK[c("S","K")], device=self$device)
         for (kk in 1L:nrow(result))
           result[,kk] <- exec(self$summary,tmp[,which(qmat[kk,]),kk],2)
         result

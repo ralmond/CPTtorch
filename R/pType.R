@@ -73,7 +73,7 @@ pVec2pMat10 <- function (pType,pVec) {
   if (isTRUE(whichUsed(pType))) {
     return(pVec$reshape(pTypeDim(pType)))
   }
-  pMat <- torch_empty(pTypeDim(pType))
+  pMat <- torch_empty(pTypeDim(pType), device=TORCH_DEVICE)
   pMat[whichUsed(pType)] <- pVec
   pMat
 }
@@ -81,7 +81,7 @@ collist2pMat10 <- function (pType,clist) {
   if (is.null(pTypeDim(pType))) return(list2vec(clist))
   usd <- whichUsed(pType)
   if (isTRUE(usd)) usd <- array(TRUE,pTypeDim(pType))
-  pMat <- torch_empty(pTypeDim(pType))
+  pMat <- torch_empty(pTypeDim(pType), device=TORCH_DEVICE)
   for (cc in 1:ncol(pMat))
     pMat[usd[,cc],cc] <- clist[[cc]]
   pMat
@@ -123,7 +123,7 @@ getZero.character <- function(pType) {
 }
 defaultParameter <- function(pType) {UseMethod("defaultParameter")}
 defaultParameter10 <- function(pType) {
-  torch_tensor(defaultParameter(pType),dtype=torch_float())
+  torch_tensor(defaultParameter(pType), dtype=torch_float(), device=TORCH_DEVICE)
 }
 defaultParameter.PType <- function(pType) {
   zero <- pType$zero
