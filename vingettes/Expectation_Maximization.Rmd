@@ -12,33 +12,33 @@ ACED [Shute. Hansen, and Almond 2008](https://doi.org/10.3233/IRG-2008-18(4)02) 
 We load the ACED scores and exam design metadata (e.g., Q-matrix) from the [CPTtools data repository](https://github.com/ralmond/CPTtools/tree/master/data/).
 
 ```{r}
+devtools::load_all("..")
 library(CPTtorch)
 load('../data/ACED.Rdata')
+print(TORCH_DEVICE)
+```
 
-latent_skill_names <- colnames(ACED.Qmatrix)
+There are 2 possible scores {incorrect, correct} for all ACED items
+```{r}
 task_names <- rownames(ACED.Qmatrix)
-
-# there are 2 possible scores {incorrect, correct} for all ACED items
 NUM_SCORING_STRATA <- 2
+scoring_states <- lapply(task_names, function(name) paste0(name, "_", c("incorr", "corr")))
 ```
 
 Let's assume that all latent skills have 3 ability strata
 ```{r}
+latent_skill_names <- colnames(ACED.Qmatrix)
 NUM_STATES_PER_SKILL <- 3
+latent_skill_levels <- lapply(latent_skill_names, function(s) paste0(s, "_", 1:NUM_STATES_PER_SKILL))
 ```
 
 After making labels for these states, we will be ready for modeling
-```{r}
-latent_skill_levels <- lapply(latent_skill_names, function(s) paste0(s, "_", 1:NUM_STATES_PER_SKILL))
-scoring_states <- lapply(task_names, function(name) paste0(name, "_", c("incorr", "corr")))
-```
 
 ## Defining our Model
 We choose the default compensatory rule and partial credit links (see `./vingettes/CPTmodels.qmd` for more details).
 ```{r}
 aced_model <- Cognitively_Diagnostic_Model(
-  "Compensatory", "PartialCredit", ACED.Qmatrix, latent_skill_levels, scoring_states,
-  device=torch_device("cpu")
+  "Compensatory", "PartialCredit", ACED.Qmatrix, latent_skill_levels, scoring_states
 )
 ```
 
@@ -83,8 +83,8 @@ print(paste0('Time taken for one forward pass (sec) ', difftime(end.time, start.
 ```
 
 ## Training our Model
-\textcolor{red}{Still Under Development: esp, needs GPU speedup/validation}
-Now we set the `torch`'s train flag.
+\textcolor{red}{Still Under Development: esp, needs validation}
+Now we set `torch`'s train flag.
 ```{r}
 aced_model$train()
 ```
@@ -92,14 +92,28 @@ aced_model$train()
 We can use the `r fit_with_EM()` function to train our model.
 ```{r}
 start.time <- Sys.time()
-fit_with_EM(aced_model, task_scores, maxit=200L, tolerance=0.1)
+fit_with_EM(aced_model, task_scores, maxit=200L, tolerance=0.01)
 end.time <- Sys.time()
 print(paste0('Time taken for training (sec) ', difftime(end.time, start.time, units='secs')))
 ```
 
 To save our trained model, we can call `r torch_save()`:
+\textcolor{red}{Still Under Development: why does `torch_save(CDM_model)` not work}
 ```{r}
-torch_save(aced_model$state_dict(), "trained_aced_model.pt")
+# torch_save(aced_model$state_dict(), "trained_aced_model.pt")
+
+A_mat = matrix(NA, aced_model$n_tasks, length(aced_model$latent_skill_levels))
+rownames(A_mat) <- rownames(aced_model$q_matrix)
+colnames(A_mat) <- colnames(aced_model$q_matrix)
+B_vec = rep(0, aced_model$n_tasks)
+names(B_vec) <- rownames(aced_model$q_matrix)
+
+for (i in 1:length(aced_model$evidence_models)) {
+  A_mat[i, which(aced_model$q_matrix[i, ])] <- as_array(aced_model$evidence_models[[i]]$aMat)
+  B_vec[i] <- aced_model$evidence_models[[i]]$bMat$item()
+}
+
+write.table(cbind(A_mat, B_vec), "../data/CPTtorch_trained_params.txt")
 ```
 
 ## Validating our Model

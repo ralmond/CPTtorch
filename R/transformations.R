@@ -17,12 +17,12 @@ invprobit <- function (x) {pnorm(x)}
 logsumexp <- function (x) {log(sum(exp(x)))}
 
 torch_simplexify_ <- function (x,dim=-1L) {
-  cpt <- x$abs_()
-  cpt$div_(torch_sum(cpt,dim,TRUE))
+  cpt <- x$abs()
+  cpt$div(torch_sum(cpt,dim,TRUE))
 }
 torch_simplexify <- function (x,dim=-1L) {
   cpt <- x$abs()
-  cpt$div_(torch_sum(cpt,dim,TRUE))
+  cpt$div(torch_sum(cpt,dim,TRUE))
 }
 
 
@@ -41,9 +41,9 @@ softmax <- function (x) {
 lsoftmax <- function(x) {log(softmax(x))}
 
 cloglog <- function(p) {log(-log(1-p))}
-torch_cloglog <- function (p) {torch_neg(p)$add_(1)$log_()$neg_()$log_()}
+torch_cloglog <- function (p) {torch_neg(p)$add(1)$log()$neg()$log()}
 invcloglog <- function (x) {1-exp(-exp(x))}
-torch_invcloglog <- function (p) {torch_exp(p)$neg_()$exp_()$neg_()$add_(1)}
+torch_invcloglog <- function (p) {torch_exp(p)$neg()$exp()$neg()$add(1)}
 
 tcat <- function(v1,v2) {
   if (length(dim(v1))==0L) v1 <- torch_reshape(v1,-1)
@@ -52,14 +52,14 @@ tcat <- function(v1,v2) {
 }
 
 ldiff <- function (v) {c(v[1],log(diff(v)))}
-torch_ldiff <- function(v) {tcat(v[1],torch_diff(v)$log_())}
+torch_ldiff <- function(v) {tcat(v[1],torch_diff(v)$log())}
 ecusum <- function (vv) {cumsum(c(vv[1],exp(vv[-1])))}
 torch_ecusum <- function (vv) {
   torch_cumsum(tcat(vv[1],torch_exp(vv[2:-1])),1)
 }
 
 lldiff <- function (v) {log(c(v[1],diff(v)))}
-torch_lldiff <- function(v) {tcat(v[1],torch_diff(v))$log_()}
+torch_lldiff <- function(v) {tcat(v[1],torch_diff(v))$log()}
 eecusum <- function (vv) {cumsum(exp(vv))}
 torch_eecusum <- function (vv) {torch_cumsum(torch_exp(vv),1)}
 
@@ -82,9 +82,9 @@ invstickbreak <- function (q) {
 }
 
 torch_invstickbreak <- function (q) {
-  qq <- torch_cat(torch_tensor(1, device=q$device),q)$cumprod_()
-  p <- qq$mul_(torch_cat(torch_neg(q)$add_(1),torch_tensor(1, device=q$device)))
-  p[-p] <- p[-p]$neg_()$add_(1)
+  qq <- torch_cat(torch_tensor(1, device=q$device),q)$cumprod()
+  p <- qq$mul(torch_cat(torch_neg(q)$add(1),torch_tensor(1, device=q$device)))
+  p[-p] <- p[-p]$neg()$add(1)
   p
 }
 
@@ -122,7 +122,7 @@ sumrootk <- function(x) {
 }
 torch_sumrootk <- function(x,dim=-1,keepdim=FALSE,out=NULL) {
   result <- torch_sum(x,dim,keepdim,out)
-  result$div_(sqrt(x$length()/result$length()))
+  result$div(sqrt(x$length()/result$length()))
 }
 
 
@@ -130,14 +130,14 @@ prodq <- function(x) {
   1 - prod(1-x)
 }
 torch_prodq <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
-  qqq <- torch_prod(torch_ones_like(x)$sub_(x),dim,keepdim,out)
+  qqq <- torch_prod(torch_ones_like(x)$sub(x),dim,keepdim,out)
   torch_ones_like(qqq)$sub(qqq)
 }
 
 prod_1 <- function(x)
   1 - prod(x)
 torch_prod_1 <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
-  torch_prod(x,dim,keepdim,out)$neg_()$add_(torch_tensor(1))
+  torch_prod(x,dim,keepdim,out)$neg()$add(torch_tensor(1))
 }
 
 
@@ -192,12 +192,12 @@ getZeroOp <- function (op) {
 
 ## Define qnorm and pnorm in terms of erf and erfinv
 torch_pnorm <- function (x) {
-  torch_div(x,sqrt(2))$erf_()$add_(1)$div_(2)
+  torch_div(x,sqrt(2))$erf()$add(1)$div(2)
 }
 
 
 torch_qnorm <- function (x) {
-  torch_mul(x,2)$sub_(1)$erfinv_()$mul_(sqrt(2))
+  torch_mul(x,2)$sub(1)$erfinv()$mul(sqrt(2))
 }
 
 
@@ -299,9 +299,9 @@ guessmat <- function(n,g) {
 torch_guessmat <- function(n,g) {
   mat <- torch_zeros(n,n,device=g$device)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,g$pow(offset),device=g$device),
+    mat <- mat$add(torch_diag_embed(torch_full(n-offset,g$pow(offset),device=g$device),
                                      offset))
-  mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
+  mat$add(torch_diag_embed(mat$sum(2)$neg()$add(1),0))
 }
 
 slipmat <- function(n,s) {
@@ -315,9 +315,9 @@ slipmat <- function(n,s) {
 torch_slipmat <- function(n,s) {
   mat <- torch_zeros(n,n,device=s$device)
   for (offset in 1L:(n-1L))
-    mat <- mat$add_(torch_diag_embed(torch_full(n-offset,s$pow(offset),device=s$device),
+    mat <- mat$add(torch_diag_embed(torch_full(n-offset,s$pow(offset),device=s$device),
                                      -offset))
-  mat$add_(torch_diag_embed(mat$sum(2)$neg_()$add_(1),0))
+  mat$add(torch_diag_embed(mat$sum(2)$neg()$add(1),0))
 }
 
 

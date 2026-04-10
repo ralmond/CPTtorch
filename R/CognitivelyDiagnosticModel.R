@@ -44,11 +44,10 @@ Cognitively_Diagnostic_Model <- nn_module(
     bin_eps=2^-35,
     optimizer=NULL,
     oconstructor="optim_adam",
-    oparams=list(lr=0.001),
+    oparams=list(lr=0.1),
     lossfn=NULL,
     initialize = function(ruletype,linktype,q_matrix,latent_skill_levels=list(),scoring_states=list(),
-                          guess=NA,slip=NA,high2low=FALSE,
-                          device=TORCH_DEVICE) {
+                          guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE) {
       stopifnot(length(latent_skill_levels)==dim(q_matrix)[[2]])
       stopifnot(self$n_tasks==dim(q_matrix)[[1]])
       self$n_tasks <- length(scoring_states)
@@ -323,7 +322,7 @@ fit_with_EM <- function(model, task_scores, penalties=list(), tolerance=1e-3,
 
   # plot the loss curve
   while (!is.null(dev.list())) dev.off()
-  plot(1:rit, loss_hist[1:rit], 'l', main='Loss Curve', xlab='epoch', ylab='Penalized NLL Loss')
+  plot(1:rit, loss_hist[1:rit], 'l', main='Loss Curve', xlab='epoch', ylab='Loss (Perplexity + Penalties)')
 
   return (rit < maxit)
 }

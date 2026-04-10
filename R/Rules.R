@@ -60,7 +60,6 @@ CombinationRule <- torch::nn_module(
     bop = "torch_add",
     aVec = NULL,
     bVec = NULL,
-    device=TORCH_DEVICE,
     setParents = function(parents) {
       self$pTheta <- buildpTheta10(parents)
       self$pNames <- lapply(parents,names)
@@ -74,26 +73,27 @@ CombinationRule <- torch::nn_module(
         adim <- pTypeDim(private$atype)
         private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
         if (!isTRUE(all.equal(adim,pTypeDim(private$atype))))
-           self$aMat <- nn_parameter(defaultParameter10(private$atype))
+           self$aMat <- nn_parameter(defaultParameter10(private$atype, device=self$device))
       }
       if (!is.null(private$btype)) {
         bdim <- pTypeDim(private$btype)
         private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
         if (!isTRUE(all.equal(bdim,pTypeDim(private$btype))))
-           self$bMat <- nn_parameter(defaultParameter10(private$btype))
+           self$bMat <- nn_parameter(defaultParameter10(private$btype, device=self$device))
       }
       invisible(self)
     },
-    initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,...) {
+    initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,device=TORCH_DEVICE,...) {
       private$SJK$K <- nstates
       self$setParents(parents)
       self$QQ <- QQ
       self$high2low <- high2low
+      self$device <- device
       if (!is.null(self$aType)) {
-        self$aMat <- nn_parameter(defaultParameter10(private$atype))
+        self$aMat <- nn_parameter(defaultParameter10(private$atype, device=TORCH_DEVICE))
       }
       if (!is.null(self$bType)) {
-        self$bMat <-nn_parameter(defaultParameter10(private$btype))
+        self$bMat <-nn_parameter(defaultParameter10(private$btype, device=TORCH_DEVICE))
       }
     },
     forward = function() {
@@ -110,12 +110,12 @@ CombinationRule <- torch::nn_module(
         exec(self$bop,
              genMMtQ(self$pTheta,amat,qmat,
                      self$aop,self$summary),
-             bmat$t_())
+             bmat$t())
       } else {
         exec(self$bop,
              genMMt(self$pTheta,amat,
                     self$aop,self$summary),
-             bmat$t_())
+             bmat$t())
       }
     },
     getETframe = function () {
@@ -147,7 +147,7 @@ CombinationRule <- torch::nn_module(
           private$atype <- value
           if (!is.null(private$SJK)) {
             private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
-            self$aMat <- nn_parameter(defaultParameter10(private$atype))
+            self$aMat <- nn_parameter(defaultParameter10(private$atype, device=self$device))
           }
           invisible(self)
         },
@@ -158,7 +158,7 @@ CombinationRule <- torch::nn_module(
           private$btype <- value
           if (!is.null(private$SJK)) {
             private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
-            self$bMat <- nn_parameter(defaultParameter10(private$btype))
+            self$bMat <- nn_parameter(defaultParameter10(private$btype, device=self$device))
           invisible(self)
           }
         },
@@ -233,12 +233,12 @@ RuleBSA <- torch::nn_module(
         exec(self$aop,
              genMMtQ(self$pTheta,bmat,qmat,
                      self$bop,self$summary),
-             amat$t_())
+             amat$t())
       } else {
         exec(self$aop,
              genMMt(self$pTheta,bmat,
                     self$bop,self$summary),
-             amat$t_())
+             amat$t())
       }
     },
     private=list(
@@ -410,7 +410,7 @@ CompensatoryRule <- torch::nn_module(
              bmat$t())
       } else {
         ## Using built-in matrix multiplication should be faster
-        ##torch_addmm(bmat$neg()$t_(),self$pTheta,amat$t(),alpha=private$rootj)
+        ##torch_addmm(bmat$neg()$t(),self$pTheta,amat$t(),alpha=private$rootj)
         torch_add(bmat$neg()$t(),
                   torch_matmul(self$pTheta,amat$t())$mul(private$rootj))
       }

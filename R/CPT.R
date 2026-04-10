@@ -1,21 +1,21 @@
 # !diagnostics suppress=self,private,super
 
-deviance_loss <- function(datatab,cpt,ccbias=0) {
+deviance_loss <- function(datatab,cpt,ccbias=0,bin_eps=2^-35) {
   datatab <- torch_reshape(datatab,dim(cpt))$add(cpt,ccbias)
-  cpt$log()$mul_(datatab)$sum()$mul(-2)
+  cpt$sum(bin_eps)$log()$mul(datatab)$sum()$mul(-2)
 }
 penalty_fun = function(params,which,bias) {
   if (!is.null(params[[which]]))
-    params[[which]]$square()$sum()$mul_(bias)
+    params[[which]]$square()$sum()$mul(bias)
   else
     torch_tensor(0,torch_double(),device=TORCH_DEVICE)
 }
 
-build_loss_fun <- function (ccbias,penalties) {
+build_loss_fun <- function (ccbias,penalties,bin_eps=2^-35) {
   function(dattab,cpt,params) {
     result <- deviance_loss(dattab,cpt,ccbias)
     for (ipar in names(penalties)) {
-      result <- result$add_(
+      result <- result$add(
         penalty_fun(params,ipar,penalties[[ipar]])
       )
     }
@@ -29,12 +29,13 @@ CPT_Model <- nn_module(
     rule=NULL,
     link=NULL,
     ccbias=10,
+    bin_eps=2^-35,
     optimizer=NULL,
     oconstructor="optim_adam",
     oparams=list(lr=.1),
     lossfn=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
-                          QQ=TRUE,guess=NA,slip=NA,high2low=FALSE) {
+                          QQ=TRUE,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE) {
       self$parentVals <- parents
       self$stateNames <- states
       link <- getLink(linktype)
@@ -98,13 +99,14 @@ CPT_Model <- nn_module(
       frame
     },
     deviance=function(dattab) {
-      deviance_loss(dattab,self$forward(),self$ccbias)
+      deviance_loss(dattab,self$forward(),self$ccbias,self$bin_eps)
     },
     buildOptimizer = function() {
       self$cache <- NULL
       self$lossfn <-
         jit_trace(build_loss_fun(self$ccbias,
-                                 self$penalities),
+                                 self$penalities,
+                                 self$bin_eps),
           torch_ones(self$shp),
           self$forward(),
           self$params())
