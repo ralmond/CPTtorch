@@ -63,7 +63,6 @@ CPT_Model <- nn_module(
     },
     params = function() {
       plist <- list(
-        aMat=self$rule$aMat,bMat=self$rule$bMat,
       aVec=self$rule$aVec,bVec=self$rule$bVec,
       sVec=self$link$sVec,gP=self$link$guessP,
       sP=self$link$sP)

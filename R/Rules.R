@@ -61,7 +61,7 @@ CombinationRule <- torch::nn_module(
     aVec = NULL,
     bVec = NULL,
     setParents = function(parents) {
-      self$pTheta <- buildpTheta10(parents)
+      self$pTheta <- buildpTheta10(parents,device=self$device)
       self$pNames <- lapply(parents,names)
       self$setDim(S=nrow(self$pTheta),J=ncol(self$pTheta))
     },
@@ -73,27 +73,27 @@ CombinationRule <- torch::nn_module(
         adim <- pTypeDim(private$atype)
         private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
         if (!isTRUE(all.equal(adim,pTypeDim(private$atype))))
-           self$aMat <- nn_parameter(defaultParameter10(private$atype, device=self$device))
+           self$aMat <- defaultParameter10(private$atype, device=self$device)
       }
       if (!is.null(private$btype)) {
         bdim <- pTypeDim(private$btype)
         private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
         if (!isTRUE(all.equal(bdim,pTypeDim(private$btype))))
-           self$bMat <- nn_parameter(defaultParameter10(private$btype, device=self$device))
+           self$bMat <- defaultParameter10(private$btype, device=self$device)
       }
       invisible(self)
     },
     initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,device=TORCH_DEVICE,...) {
+      self$device <- device
       private$SJK$K <- nstates
       self$setParents(parents)
       self$QQ <- QQ
       self$high2low <- high2low
-      self$device <- device
       if (!is.null(self$aType)) {
-        self$aMat <- nn_parameter(defaultParameter10(private$atype, device=TORCH_DEVICE))
+        self$aMat <- defaultParameter10(private$atype, device=TORCH_DEVICE)
       }
       if (!is.null(self$bType)) {
-        self$bMat <-nn_parameter(defaultParameter10(private$btype, device=TORCH_DEVICE))
+        self$bMat <- defaultParameter10(private$btype, device=TORCH_DEVICE)
       }
     },
     forward = function() {
@@ -147,7 +147,7 @@ CombinationRule <- torch::nn_module(
           private$atype <- value
           if (!is.null(private$SJK)) {
             private$atype <- exec(setpTypeDim,private$atype,!!!private$SJK)
-            self$aMat <- nn_parameter(defaultParameter10(private$atype, device=self$device))
+            self$aMat <- defaultParameter10(private$atype, device=self$device)
           }
           invisible(self)
         },
@@ -158,7 +158,7 @@ CombinationRule <- torch::nn_module(
           private$btype <- value
           if (!is.null(private$SJK)) {
             private$btype <- exec(setpTypeDim,private$btype,!!!private$SJK)
-            self$bMat <- nn_parameter(defaultParameter10(private$btype, device=self$device))
+            self$bMat <- defaultParameter10(private$btype, device=self$device)
           invisible(self)
           }
         },

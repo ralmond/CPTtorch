@@ -125,5 +125,6 @@ for (i in 1:length(aced_model$evidence_models)) {
   print('  B')
   print(aced_model$evidence_models[[i]]$bMat)
   print('')
+  break
 }
 ```

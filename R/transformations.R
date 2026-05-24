@@ -1,9 +1,11 @@
 #####################################################
 ## Primitive Link functions
 
-as_torch_tensor <- function (x) {UseMethod("as_torch_tensor")}
-as_torch_tensor.numeric <- function(x) {torch_tensor(x,dtype=torch_float(),device=TORCH_DEVICE)}
-as_torch_tensor.torch_tensor <- function(x) {x}
+as_torch_tensor <- function (x,device=TORCH_DEVICE) {UseMethod("as_torch_tensor")}
+as_torch_tensor.numeric <- function(x,device=TORCH_DEVICE) {
+  torch_tensor(x,dtype=torch_float(),device=device)
+  }
+as_torch_tensor.torch_tensor <- function(x,device=TORCH_DEVICE) {x$to(device=device)}
 
 
 logit <- function (p) {log(p/(1-p))}
@@ -17,8 +19,8 @@ invprobit <- function (x) {pnorm(x)}
 logsumexp <- function (x) {log(sum(exp(x)))}
 
 torch_simplexify_ <- function (x,dim=-1L) {
-  cpt <- x$abs()
-  cpt$div(torch_sum(cpt,dim,TRUE))
+  cpt <- x$abs_()
+  cpt$div_(torch_sum(cpt,dim,TRUE))
 }
 torch_simplexify <- function (x,dim=-1L) {
   cpt <- x$abs()
@@ -137,7 +139,7 @@ torch_prodq <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
 prod_1 <- function(x)
   1 - prod(x)
 torch_prod_1 <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
-  torch_prod(x,dim,keepdim,out)$neg()$add(torch_tensor(1))
+  torch_prod(x,dim,keepdim,out)$neg()$add(torch_tensor(1, device=x$device))
 }
 
 

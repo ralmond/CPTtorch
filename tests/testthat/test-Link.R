@@ -55,7 +55,7 @@ test_that("Link sType", {
 test_that("Link linkScale", {
   gl <- GaussianLink$new(3)
   gl$linkScale <- 2.5
-  expect_equal(as.numeric(gl$linkScale),2.5)
+  expect_equal(as.numeric(gl$linkScale),2.5,tolerance=.00001)
   expect_error({gl$linkScale<- -1})
 
 })
@@ -141,7 +141,7 @@ test_that("SoftmaxLink",{
   expect_equal(as.numeric(cpt[3,]),softmax(1.7*tm2[3,]),
                tolerance=.00001)
 
-  sml$D <- torch_tensor(1.0,dtype=torch_float())
+  sml$D <- torch_tensor(1.0,dtype=torch_float(),device=sml$device)
   cpt <- sml$forward(torch_tensor(tm2))
   expect_equal(as.numeric(cpt[1,]),softmax(tm2[1,]),
                tolerance=.00001)

@@ -14,14 +14,14 @@ CPT_Link <- torch::nn_module(
       stype=NULL
     ),
     initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE,...) {
+      self$device <- device
       self$K <- nstates
       self$guess <- guess
       self$slip <- slip
       self$high2low <- high2low
-      self$device <- device
       if (!is.null(private$stype)) {
         private$stype <- setpTypeDim(private$stype,K=nstates)
-        self$linkscale <- defaultParameter10(private$stype)
+        self$linkscale <- defaultParameter10(private$stype, device=device)
       }
     },
     leakmat=function() {
@@ -40,7 +40,8 @@ CPT_Link <- torch::nn_module(
       result
     },
     forward=function(et) {
-      cpt <- exec(self$link,et)
+      et <- as_torch_tensor(et, device=self$device)
+      cpt <- exec(self$link, et)
 
       leakmat <- self$leakmat()
       if (!is.null(leakmat)) {
@@ -61,7 +62,7 @@ CPT_Link <- torch::nn_module(
            olddim <- pTypeDim(private$stype)
            private$stype <- setpTypeDim(private$stype,K=private$k)
            if (!isTRUE(all.equal(olddim, pTypeDim(private$stype)))) {
-             self$linkScale <- defaultParameter10(private$stype)
+             self$linkScale <- defaultParameter10(private$stype, device=self$device)
            }
          }
        },
@@ -74,7 +75,7 @@ CPT_Link <- torch::nn_module(
           if (!is.na(private$k)) {
             private$stype <- setpTypeDim(private$stype,K=private$k)
             if (!isTRUE(all.equal(olddim, pTypeDim(private$stype))))
-              self$linkScale <- torch_tensor(defaultParameter(private$stype))
+              self$linkScale <- torch_tensor(defaultParameter(private$stype), device=self$device)
           }
           invisible(self)
        },
@@ -87,7 +88,7 @@ CPT_Link <- torch::nn_module(
           if (!isTRUE(pcheck))
             stop("Illegal link scale parameter value, ",pcheck,".")
           self$sVec <- nn_parameter(natpar2tvec(private$stype,
-                                                as_torch_tensor(value)))
+                                                as_torch_tensor(value, self$device)))
           invisible(self)
        },
        guess=function(value) {
@@ -99,7 +100,7 @@ CPT_Link <- torch::nn_module(
          else {
            if (as.numeric(value) < 0 || as.numeric(value)>.5)
              abort("Guessing paramter must be between 0 and .5.")
-           self$guessP <- nn_parameter(as_torch_tensor(value)$mul(2)$logit())
+           self$guessP <- nn_parameter(as_torch_tensor(value, self$device)$mul(2)$logit())
          }
        },
        slip=function(value) {
@@ -111,7 +112,7 @@ CPT_Link <- torch::nn_module(
          else {
            if (as.numeric(value) < 0 || as.numeric(value)>.5)
              abort("Slipping paramter must be between 0 and .5.")
-           self$slipP <- nn_parameter(as_torch_tensor(value)$mul(2)$logit())
+           self$slipP <- nn_parameter(as_torch_tensor(value, self$device)$mul(2)$logit())
          }
        }
     )
@@ -156,6 +157,7 @@ PotentialLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {self$K},
     link=function(et) {
+      as_torch_tensor(et, device=self$device)
       torch_simplexify(et)
     },
     private=list(
@@ -169,8 +171,9 @@ StepProbsLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
+      et <- as_torch_tensor(et, device=self$device)
       pp <- et$cumprod(2)
-      torch_simplexify_(
+      torch_simplexify(
         torch_hstack(list(
             torch_diff(pp,dim=2,prepend=torch_ones(nrow(et),1,device=self$device))$neg(),
             pp[,ncol(pp),drop=FALSE])))
@@ -207,10 +210,11 @@ SoftmaxLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {self$K},
     initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...,D=1.7) {
-      self$D <- torch_tensor(D, device=self$device)
       super$initialize(nstates,guess,slip,high2low,...)
+      self$D <- torch_tensor(D, device=self$device)
     },
     link=function(et) {
+      as_torch_tensor(et, device=self$device)
       nnf_softmax(et$mul(self$D),2)
     },
     private=list(
@@ -222,13 +226,14 @@ SoftmaxLink <- torch::nn_module(
 GradedResponseLink <- torch::nn_module(
     classname="GradedResponseLink",
     inherit=DifferenceLink,
-    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...,D=1.7) {
-      self$D <- torch_tensor(D, device=self$device)
+    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...,D=-1.7) {
       super$initialize(nstates,guess,slip,high2low,...)
+      self$D <- torch_tensor(D, device=self$device)
     },
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
+      et <- as_torch_tensor(et, device=self$device)
       cuts2simplex(nnf_sigmoid(et$mul(-self$D)))
     },
     private=list(
@@ -240,18 +245,19 @@ PartialCreditLink <- torch::nn_module(
     classname="PartialCreditLink",
     inherit=StepProbsLink,
     scale=NULL,
-    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...,D=1.7) {
-      self$D <- torch_tensor(D, device=self$device)
+    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,D=-1.7,...) {
       super$initialize(nstates,guess,slip,high2low,...)
+      self$D <- torch_tensor(D, device=self$device)
     },
     etWidth=function() {self$K-1},
     link=function(et) {
+      et <- as_torch_tensor(et, self$device)
       torch_simplexify(
         torch_cumsum(
           torch_hstack(list(torch_zeros(nrow(et),1,device=self$device),
                             et)),
           2
-        )$mul(self$D)$exp())
+        )$mul(-self$D)$exp())
     },
     private=list(
       stype=NULL
@@ -268,9 +274,10 @@ GaussianLink <- torch::nn_module(
     link=function(et) {
       if (!is(self$linkScale,"torch_tensor"))
         stop("Link Scale not yet set.")
+      et <- as_torch_tensor(et, device=self$device)
       pt <- torch_pnorm(torch_sub(self$Cuts,et)$div(self$linkScale))
       torch_diff(pt,dim=2,prepend=torch_zeros(nrow(et),1,device=self$device),
-                 append=torch_ones(nrow(et),1,self$device))
+                 append=torch_ones(nrow(et),1, device=self$device))
     },
     private=list(
         stype=setpTypeDim(PType("pos",1)),
@@ -293,6 +300,7 @@ GaussianLink <- torch::nn_module(
 ##     scale=NULL,
 ##     etWidth=function() {K-1},
 ##     link=function(et) {
+##       as_torch_tensor(et, device=self$device)
 ##       torch_hstack(et,torch_sum(et,2)$neg()$add(1))$
 ##         matmul(self$linkScale)
 ##     },
@@ -310,6 +318,7 @@ SlipLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
+      et <- as_torch_tensor(et, device=self$device)
       cuts2simplex(et)$matmul(torch_slipmat(self$K,self$linkScale))
     },
     private=list(
