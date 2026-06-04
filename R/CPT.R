@@ -33,6 +33,8 @@ CPT_Model <-
     optimizer=NULL,
     oconstructor="optim_adam",
     oparams=list(lr=.1),
+    schedule=list(phases=1:3,lrms=c(1,.1,.01),msteps=c(25,5,25)),
+    scheduler=NULL,
     lossfn=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
                           QQ=TRUE,guess=NA,slip=NA,high2low=FALSE) {
@@ -58,11 +60,7 @@ CPT_Model <-
         length(self$link$slipP)
     },
     params = function() {
-      plist <- list(
-      aVec=self$rule$aVec,bVec=self$rule$bVec,
-      sVec=self$link$sVec,gP=self$link$guessP,
-      sP=self$link$sP)
-      plist[!sapply(plist,is.null)]
+      c(self$rule$params(),self$link$params())
     },
     AIC = function(datatab) {
       as_array(self$deviance(datatab)) + 2*self$numparams()
@@ -101,9 +99,19 @@ CPT_Model <-
       self$optimizer <-
         do.call(self$oconstructor,
                 c(list(self$params()),self$oparams))
+      self$scheduler <- do.call(lr_phased,self$schedule)
       self$optimizer
     },
-    step = function (datatab,r=1L) {
+    get_msteps = function() {
+      if (is.null(self$scheduler)) return(1L)
+      self$scheduler$get_msteps()
+    },
+    step_epoch = function() {
+      if (is.null(self$scheduler))
+        stop("Scheduler not yet built.")
+       self$scheduler$step()
+    },
+    step = function (datatab,r=self$get_msteps()) {
       if (is.null(self$optimizer)) self$buildOptimizer()
       if (is.null(self$lossfn)) {
         self$cache <- NULL

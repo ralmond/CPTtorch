@@ -11,7 +11,8 @@ CPT_Link <- torch::nn_module(
     high2low=FALSE,
     private=list(
       k=NA,
-      stype=NULL
+      stype=NULL,
+      sgtype=setpTypeDim(PType("halfunit",1,oparams=list(lr=.01)))
     ),
     initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...) {
       self$K <- nstates
@@ -77,6 +78,13 @@ CPT_Link <- torch::nn_module(
           }
           invisible(self)
        },
+       sgType=function(value) {
+          if (missing(value)) return (private$sgtype)
+          if (!is(value,"PType"))
+            abort("The slip/guess type field must be a PType object.")
+          private$sgtype <- value
+          invisible(self)
+       },
        linkScale=function(value) {
           if (missing(value)) {
             if (is.null(self$sVec)) return (NULL)
@@ -112,6 +120,19 @@ CPT_Link <- torch::nn_module(
              abort("Slipping paramter must be between 0 and .5.")
            self$slipP <- nn_parameter(as_torch_tensor(value)$mul_(2)$logit_())
          }
+       },
+       params = function() {
+         res <- list()
+         if (!is.null(self$sVec)) {
+           res$sVec=c(list(sVec=self$sVec),self$sType$oparams)
+         }
+         if (!is.null(self$slipP)) {
+           res$sP=c(list(sP=self$slipP),self$sgType$oparams)
+         }
+         if (!is.null(self$guessP)) {
+           res$gP=c(list(gP=self$guessP),self$sgType$oparams)
+         }
+         res
        }
     )
 )
@@ -269,7 +290,7 @@ GaussianLink <- torch::nn_module(
                  append=torch_ones(nrow(et),1))
     },
     private=list(
-        stype=setpTypeDim(PType("pos",1)),
+        stype=setpTypeDim(PType("pos",1,oparams=list(lr=.01))),
         cuts=NULL
     ),
     active=list(
@@ -309,7 +330,7 @@ SlipLink <- torch::nn_module(
       cuts2simplex(et)$matmul_(torch_slipmat(self$K,self$linkScale))
     },
     private=list(
-        stype=PType("unit",c(1))
+        stype=PType("unit",c(1),oparams=list(lr=.01))
     )
 )
 

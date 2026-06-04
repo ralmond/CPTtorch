@@ -121,9 +121,19 @@ CombinationRule <- torch::nn_module(
       data.frame(cartesian_prod(self$pNames),
                  et=as_array(self$et))
     },
+    params = function() {
+      res <- list()
+      if (!is.null(self$aVec)) {
+           res$aVec=c(list(aVec=self$aVec),self$aType$oparams)
+      }
+      if (!is.null(self$bVec)) {
+           res$bVec=c(list(aVec=self$bVec),self$bType$oparams)
+      }
+      res
+    },
     private=list(
-        atype=PType("real",c(K,J)),
-        btype=PType("real",c(K,1L)),
+        atype=PType("real",c(K,J),oparams=list(lr=.1)),
+        btype=PType("real",c(K,1L),oparams=list(lr=.1)),
         SJK=list(S=1L,J=1L,K=1L),
         high_low = FALSE,
         pTheta=NULL,
@@ -312,7 +322,7 @@ RuleConstB <- nn_module(
     },
     private=list(
         atype=NULL,
-        btype=PType("const",c(K,J))
+        btype=PType("const",c(K,J),oparams=list(lr=.1))
     ),
     active = list(
         aType=function(value) {
@@ -346,7 +356,7 @@ RuleConstA <- nn_module(
       self$aMat
     },
     private=list(
-        atype=PType("const",c(K,J)),
+        atype=PType("const",c(K,J),oparams=list(lr=.01)),
         btype=NULL
     ),
     active = list(
@@ -381,8 +391,8 @@ CompensatoryRule <- torch::nn_module(
     summary = "torch_sumrootk",
     bop = "torch_sub",
     private=list(
-        atype=PType("pos",c(K,J)),
-        btype=PType("real",c(K,1)),
+        atype=PType("pos",c(K,J),oparams=list(lr=.01)),
+        btype=PType("real",c(K,1),oparams=list(lr=.1)),
         rootj=NA
     ),
     # initialize=function(parents, nstates, QQ=true, ...) {
@@ -421,8 +431,8 @@ CompensatoryGRRule <- torch::nn_module(
     classname="CompensatoryGRRule",
     inherit = CompensatoryRule,
     private=list(
-        atype=PType("pos",c(1L,J)),
-        btype=PType("incrK",c(K,1L))
+        atype=PType("pos",c(1L,J),oparams(list(lr=.01))),
+        btype=PType("incrK",c(K,1L),oparams(list(lr=.1)))
     )
 )
 
@@ -434,8 +444,8 @@ ConjunctiveRule <- torch::nn_module(
     summary = "torch_amin",
     aop = "torch_mul",
     private=list(
-        atype=PType("pos",c(K,1)),
-        btype=PType("real",c(K,J))
+        atype=PType("pos",c(K,1),oparams=list(lr=.01)),
+        btype=PType("real",c(K,J),oparams=list(lr=.1))
      )
 )
 
@@ -446,8 +456,8 @@ DisjunctiveRule <- torch::nn_module(
     summary = "torch_amax",
     aop = "torch_mul",
     private=list(
-        atype=PType("pos",c(K,1)),
-        btype=PType("real",c(K,J))
+        atype=PType("pos",c(K,1),oparams=list(lr=.01)),
+        btype=PType("real",c(K,J),oparams=list(lr=.1))
      )
 )
 
@@ -459,8 +469,8 @@ NoisyAndRule <- torch::nn_module(
     summary = "torch_prod",
     aop = "torch_mul",
     private=list(
-        atype=PType("unit",c(K,J)),
-        btype=PType("real",c(K,J))
+        atype=PType("unit",c(K,J),oparams=list(lr=.01)),
+        btype=PType("real",c(K,J),oparams=list(lr=.1))
      )
 )
 
@@ -471,8 +481,8 @@ NoisyOrRule <- torch::nn_module(
     summary = "torch_prod_1",
     aop = "torch_mul",
     private=list(
-        atype=PType("unit",c(K,J)),
-        btype=PType("real",c(K,J))
+        atype=PType("unit",c(K,J),oparams=list(lr=.01)),
+        btype=PType("real",c(K,J),oparams=list(lr=.1))
      )
 )
 
@@ -489,7 +499,7 @@ CenterRule <- torch::nn_module(
     postscale = "identity",
     private=list(
         atype=NULL,
-        btype=PType("real",c(S,K))
+        btype=PType("real",c(S,K),oparams=list(lr=.1))
      )
 )
 
@@ -501,7 +511,7 @@ DirichletRule <- torch::nn_module(
     postscale = "identity",
     private=list(
         atype=NULL,
-        btype=PType("real",c(S,K))
+        btype=PType("real",c(S,K),oparams=list(lr=.01))
      )
 )
 

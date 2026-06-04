@@ -1,11 +1,12 @@
-PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=FALSE) {
+PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE,
+                  high2low=FALSE,oparams=list(lr=.001)) {
   res <- list(dimexpr=substitute(dim),dim=NULL,zero=zero, used=used,
-              high2low=high2low)
+              high2low=high2low,oparams=oparams)
   class(res) <- c(pType,"PType")
   res
 }
 
-PTypeList <- c("real","pos","unit","pVec","cpMat","const","incrK")
+PTypeList <- c("real","pos","unit","halfunit","pVec","cpMat","const","incrK")
 availablePTypes <- function() {PTypeList}
 isPType <- function (obj) UseMethod("isPType")
 isPType.default <- function (obj)
@@ -195,6 +196,21 @@ Rvec2natpar.unit <- function(pType,Rvec) {pVec2pMat(pType,invlogit(Rvec))}
 natpar2tvec.unit <- function(pType,natpar) {pMat2pVec10(pType,natpar)$logit_()}
 tvec2natpar.unit <- function(pType,Rvec) {pVec2pMat10(pType,torch_sigmoid(Rvec))}
 getZero.unit <- function(pType) {.5}
+
+checkParam.halfunit <- function(pType,par) {
+  pVec <-pMat2pVec(pType,as.array(par))
+  if (any(is.na(pVec)))
+    return("Unexpected NAs in parameter.")
+  if (any(pVec<0)||any(pVec>.5))
+    return("Values outside the range [0,.5]")
+  NextMethod()
+}
+natpar2Rvec.halfunit <- function(pType,natpar) {logit(pMat2pVec(pType,natpar)*2)}
+Rvec2natpar.halfunit <- function(pType,Rvec) {pVec2pMat(pType,invlogit(Rvec/2))}
+natpar2tvec.halfunit <- function(pType,natpar) {pMat2pVec10(pType,natpar)$logit_()$mul_(2)}
+tvec2natpar.halfunit <- function(pType,Rvec) {pVec2pMat10(pType,torch_sigmoid(torch_div(Rvec,2)))}
+getZero.halfunit <- function(pType) {0}
+
 
 checkParam.pVec <- function(pType,par) {
   pVec <-pMat2pVec(pType,as.array(par))
