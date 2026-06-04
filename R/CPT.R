@@ -1,21 +1,21 @@
 # !diagnostics suppress=self,private,super
 
-deviance_loss <- function(datatab,cpt,ccbias=0) {
+deviance_loss <- function(datatab,cpt,ccbias=0,bin_eps=2^-35) {
   datatab <- torch_reshape(datatab,dim(cpt))$add(cpt,ccbias)
-  cpt$log()$mul_(datatab)$sum()$neg_()
+  cpt$sum(bin_eps)$log()$mul(datatab)$sum()$mul(-2)
 }
 penalty_fun = function(params,which,bias) {
   if (!is.null(params[[which]]))
-    params[[which]]$square()$sum()$mul_(bias)
+    params[[which]]$square()$sum()$mul(bias)
   else
-    torch_tensor(0,torch_double())
+    torch_tensor(0,torch_double(),device=TORCH_DEVICE)
 }
 
-build_loss_fun <- function (ccbias,penalties) {
+build_loss_fun <- function (ccbias,penalties,bin_eps=2^-35) {
   function(dattab,cpt,params) {
     result <- deviance_loss(dattab,cpt,ccbias)
     for (ipar in names(penalties)) {
-      result <- result$add_(
+      result <- result$add(
         penalty_fun(params,ipar,penalties[[ipar]])
       )
     }
@@ -23,13 +23,13 @@ build_loss_fun <- function (ccbias,penalties) {
   }
 }
 
-CPT_Model <-
-  torch::nn_module(
+CPT_Model <- nn_module(
     classname="CPT_Model",
 #    inherit=nn_Module,
     rule=NULL,
     link=NULL,
     ccbias=10,
+    bin_eps=2^-35,
     optimizer=NULL,
     oconstructor="optim_adam",
     oparams=list(lr=.1),
@@ -37,7 +37,7 @@ CPT_Model <-
     scheduler=NULL,
     lossfn=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
-                          QQ=TRUE,guess=NA,slip=NA,high2low=FALSE) {
+                          QQ=TRUE,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE) {
       self$parentVals <- parents
       self$stateNames <- states
       link <- getLink(linktype)
@@ -53,6 +53,10 @@ CPT_Model <-
     forward = function () {
       private$cpt <- self$link$forward(self$rule$forward())
       private$cpt
+    },
+    train = function(mode=TRUE) {
+      super$train(mode)
+      private$cpt <- NULL
     },
     numparams = function () {
       length(self$rule$aVec) + length(self$rule$bVec) +
@@ -76,23 +80,30 @@ CPT_Model <-
       if (is.null(private$cpt)) self$forward()
       frame <- data.frame(cartesian_prod(self$parentStates),
                           as_array(private$cpt))
-      names(frame) <- c(names(self$parentNames),self$stateNames)
+      if (is.character(self$parentNames))
+        names(frame) <- c(self$parentNames,self$stateNames)
+      else
+        names(frame) <- c(names(self$parentNames),self$stateNames)
       frame
     },
     getETframe = function () {
       if (is.null(self$rule)) return(NULL)
       frame <- self$rule$getETframe()
-      names(frame) <- c(names(self$parentNames),self$stateNames[1L:self$link$etWidth()])
+      if (is.character(self$parentNames))
+        names(frame) <- c(self$parentNames,self$stateNames[1L:self$link$etWidth()])
+      else
+        names(frame) <- c(names(self$parentNames),self$stateNames[1L:self$link$etWidth()])
       frame
     },
     deviance=function(dattab) {
-      deviance_loss(dattab,self$forward(),self$ccbias)
+      deviance_loss(dattab,self$forward(),self$ccbias,self$bin_eps)
     },
     buildOptimizer = function() {
       self$cache <- NULL
       self$lossfn <-
         jit_trace(build_loss_fun(self$ccbias,
-                                 self$penalities),
+                                 self$penalities,
+                                 self$bin_eps),
           torch_ones(self$shp),
           self$forward(),
           self$params())

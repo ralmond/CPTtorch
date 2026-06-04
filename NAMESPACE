@@ -118,3 +118,5 @@ export(PotentialLink,StepProbsLink,DifferenceLink,
        GaussianLink,SlipLink)
 
 export(CPT_Model,fit2table,deviance_loss,penalty_fun)
+
+export(Cognitively_Diagnostic_Model, fit_with_EM)

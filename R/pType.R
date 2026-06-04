@@ -74,7 +74,7 @@ pVec2pMat10 <- function (pType,pVec) {
   if (isTRUE(whichUsed(pType))) {
     return(pVec$reshape(pTypeDim(pType)))
   }
-  pMat <- torch_empty(pTypeDim(pType))
+  pMat <- torch_empty(pTypeDim(pType), device=pVec$device)
   pMat[whichUsed(pType)] <- pVec
   pMat
 }
@@ -82,7 +82,7 @@ collist2pMat10 <- function (pType,clist) {
   if (is.null(pTypeDim(pType))) return(list2vec(clist))
   usd <- whichUsed(pType)
   if (isTRUE(usd)) usd <- array(TRUE,pTypeDim(pType))
-  pMat <- torch_empty(pTypeDim(pType))
+  pMat <- torch_empty(pTypeDim(pType), device=clist[[1]]$device)
   for (cc in 1:ncol(pMat))
     pMat[usd[,cc],cc] <- clist[[cc]]
   pMat
@@ -123,8 +123,8 @@ getZero.character <- function(pType) {
     do.call(getS3method("getZero",pType),list())
 }
 defaultParameter <- function(pType) {UseMethod("defaultParameter")}
-defaultParameter10 <- function(pType) {
-  torch_tensor(defaultParameter(pType),dtype=torch_float())
+defaultParameter10 <- function(pType, device=TORCH_DEVICE) {
+  torch_tensor(defaultParameter(pType), dtype=torch_float(), device=device)
 }
 defaultParameter.PType <- function(pType) {
   zero <- pType$zero
@@ -179,7 +179,7 @@ checkParam.pos <- function(pType,par) {
 }
 natpar2Rvec.pos <- function(pType,natpar) {log(pMat2pVec(pType,natpar))}
 Rvec2natpar.pos <- function(pType,Rvec) {pVec2pMat(pType,exp(Rvec))}
-natpar2tvec.pos <- function(pType,natpar) {pMat2pVec10(pType,natpar)$log_()}
+natpar2tvec.pos <- function(pType,natpar) {pMat2pVec10(pType,natpar)$log()}
 tvec2natpar.pos <- function(pType,Rvec) {pVec2pMat10(pType,torch_exp(Rvec))}
 getZero.pos <- function(pType) {1}
 
@@ -193,7 +193,7 @@ checkParam.unit <- function(pType,par) {
 }
 natpar2Rvec.unit <- function(pType,natpar) {logit(pMat2pVec(pType,natpar))}
 Rvec2natpar.unit <- function(pType,Rvec) {pVec2pMat(pType,invlogit(Rvec))}
-natpar2tvec.unit <- function(pType,natpar) {pMat2pVec10(pType,natpar)$logit_()}
+natpar2tvec.unit <- function(pType,natpar) {pMat2pVec10(pType,natpar)$logit()}
 tvec2natpar.unit <- function(pType,Rvec) {pVec2pMat10(pType,torch_sigmoid(Rvec))}
 getZero.unit <- function(pType) {.5}
 
@@ -223,7 +223,7 @@ checkParam.pVec <- function(pType,par) {
 }
 natpar2Rvec.pVec <- function(pType,natpar) {log(pMat2pVec(pType,natpar))}
 Rvec2natpar.pVec <- function(pType,Rvec) {pVec2pMat(pType,softmax(Rvec))}
-natpar2tvec.pVec <- function(pType,natpar) {pMat2pVec10(pType,natpar)$log_()}
+natpar2tvec.pVec <- function(pType,natpar) {pMat2pVec10(pType,natpar)$log()}
 tvec2natpar.pVec <- function(pType,Rvec) {pVec2pMat10(pType,nnf_softmax(Rvec,1))}
 getZero.pVec <- function(pType) {.5}
 
@@ -245,7 +245,7 @@ Rvec2natpar.cpMat <- function(pType,Rvec) {
   rowlist2pMat(pType,lapply(vec2rowlist(pType,Rvec),softmax))
 }
 natpar2tvec.cpMat <- function(pType,natpar) {
-  pMat2pVec10(pType,natpar)$log_()
+  pMat2pVec10(pType,natpar)$log()
 }
 tvec2natpar.cpMat <- function(pType,Rvec) {
   pVec2pMat10(pType,torch_cat(lapply(vec2rowlist(pType,Rvec),

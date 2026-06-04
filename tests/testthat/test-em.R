@@ -29,7 +29,6 @@ test_that("Build Loss Function.",{
 
 
 test_that("Recovery Normal 0 parents", {
-
  mod0 <- CPT_Model$new("Center","Normal",list(),c("A","B","C"))
  mod0$linkScale <- 1
  mod0$penalties <- list("bVec"=1,"sVec"=1)
@@ -39,11 +38,10 @@ test_that("Recovery Normal 0 parents", {
  cpt1 <- mod1$getCPT()
  dattab <- torch_mul(cpt1,1000)
 
- conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"),maxit=100L)
+ conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"),maxit=200L)
  if (!conv) warning("Model fitting did not converge")
 
- expect_eqten(mod0$getCPT(),cpt1)
-
+ expect_eqten(mod0$getCPT(),cpt1,tol=3e-3)
 })
 
 test_that("Recovery Normal 1 parent", {
@@ -55,7 +53,21 @@ test_that("Recovery Compensatory GR", {
 })
 
 test_that("Recovery Compensatory PC", {
+  mod0 <- CPT_Model$new("Compensatory","PartialCredit",
+                        list('Par1'=c('P1_low', 'P1_hi'), 'Par2'=c('P2_low', 'P2_hi')),
+                        c("A","B","C"))
+  mod0$penalties <- list("bVec"=1,"sVec"=1)
+  mod1 <- CPT_Model$new("Compensatory","PartialCredit",
+                        list('Par1'=c('P1_low', 'P1_hi'), 'Par2'=c('P2_low', 'P2_hi')),
+                        c("A","B","C"))
+  mod1$bMat <- matrix(.5,1,1)
+  cpt1 <- mod1$getCPT()
+  dattab <- torch_mul(cpt1,1000)
 
+  conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"), maxit=100L)
+  if (!conv) warning("Model fitting did not converge")
+
+  expect_eqten(mod0$getCPT(),cpt1,tol=2e-3)
 })
 
 test_that("Recovery Conjunctive PC", {

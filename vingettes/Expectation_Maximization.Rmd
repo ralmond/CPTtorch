@@ -1,0 +1,130 @@
+---
+title: "Expectation_Maximization"
+output: html_document
+---
+
+# EM Algo with `Cognitively_Diagnostic_Model`
+We investigate learning the parameters of a Cognitively Diagnostic Model as described in `./vingettes/CPTmodels.qmd`.
+
+## The ACED Dataset
+ACED [Shute. Hansen, and Almond 2008](https://doi.org/10.3233/IRG-2008-18(4)02) was a computer adaptive test designed with feedback after items were scored.
+
+We load the ACED scores and exam design metadata (e.g., Q-matrix) from the [CPTtools data repository](https://github.com/ralmond/CPTtools/tree/master/data/).
+
+```{r}
+devtools::load_all("..")
+library(CPTtorch)
+load('../data/ACED.Rdata')
+print(TORCH_DEVICE)
+```
+
+There are 2 possible scores {incorrect, correct} for all ACED items
+```{r}
+task_names <- rownames(ACED.Qmatrix)
+NUM_SCORING_STRATA <- 2
+scoring_states <- lapply(task_names, function(name) paste0(name, "_", c("incorr", "corr")))
+```
+
+Let's assume that all latent skills have 3 ability strata
+```{r}
+latent_skill_names <- colnames(ACED.Qmatrix)
+NUM_STATES_PER_SKILL <- 3
+latent_skill_levels <- lapply(latent_skill_names, function(s) paste0(s, "_", 1:NUM_STATES_PER_SKILL))
+```
+
+After making labels for these states, we will be ready for modeling
+
+## Defining our Model
+We choose the default compensatory rule and partial credit links (see `./vingettes/CPTmodels.qmd` for more details).
+```{r}
+aced_model <- Cognitively_Diagnostic_Model(
+  "Compensatory", "PartialCredit", ACED.Qmatrix, latent_skill_levels, scoring_states
+)
+```
+
+`Cognitively_Diagnostic_Model`s expect evidence as a matrix $E \in \{\mathbb{Z}, NA\}^{n_{students} \times n_{tasks}}$.
+More specifically, if student $i$ has not attempted task $j$, then $E_{ij} = NA$.
+If student $i$ attained the $k^{th}$ lowest score on task $j$, then $E_{ij} = k$.
+(Note that if the parameter `high2low` was passed into `aced_model`'s constructor and `highg2low[j]=True`, then $E_{ij} = k$ corresponds to student $i$ attaining the $k^{th}$ **highest** score on task $j$)
+
+
+The matrix `ACED.items` almost matches this format, but not-attempted, incorrect, and correct scores are saved as `NA, 0, 1` and not the desired `NA, 1, 2`.
+Since an incorrect score (stored as 0) corresponds to the 1st outcome state of `scoring_states[[j]]` (and correct, stored as 1, corresponds to the 2nd outcome state) $\forall j \in J$, we define `{r} task_scores`, $E$, as such:
+```{r}
+task_scores <- ACED.items[,4:66]
+task_scores[] <- lapply(task_scores, function(x) as.integer(x))
+task_scores <- as.matrix(task_scores)+1L
+```
+
+### Understanding model functions
+
+When we just want to view (as opposed to train) the model's states/behavior, we set the `torch`'s evaluation flag.
+```{r}
+aced_model$eval()
+```
+
+We can now calculate the expected global and task-specific contingency tables $\Phi_{I0}, \{\Phi_{Ij}\}_{j=1}^J$
+```{r}
+start.time <- Sys.time()
+exp_CPTs <- aced_model$get_expected_contingency_tables(task_scores)
+end.time <- Sys.time()
+print(dim(exp_CPTs$Phi_I0))
+print(paste0('Time taken to get prior Contingency Table (sec) ', difftime(end.time, start.time, units='secs')))
+```
+
+$\Phi_{I0}$ has dimension `r dim(exp_CPTs$Phi_I0)` and sum `r as.numeric(torch_sum(exp_CPTs$Phi_I0))` = number of students `r dim(ACED.items)[1]`
+
+We can find the task specific CPTs $\{\phi_{j}\}_{j=1}^J$ by calling `get_evidence_CPTs()` `Cognitively_Diagnostic_Model`
+```{r}
+start.time <- Sys.time()
+task_CPTs <- aced_model$get_evidence_CPTs()
+end.time <- Sys.time()
+print(paste0('Time taken for one forward pass (sec) ', difftime(end.time, start.time, units='secs')))
+```
+
+## Training our Model
+\textcolor{red}{Still Under Development: esp, needs validation}
+Now we set `torch`'s train flag.
+```{r}
+aced_model$train()
+```
+
+We can use the `r fit_with_EM()` function to train our model.
+```{r}
+start.time <- Sys.time()
+fit_with_EM(aced_model, task_scores, maxit=200L, tolerance=0.01)
+end.time <- Sys.time()
+print(paste0('Time taken for training (sec) ', difftime(end.time, start.time, units='secs')))
+```
+
+To save our trained model, we can call `r torch_save()`:
+\textcolor{red}{Still Under Development: why does `torch_save(CDM_model)` not work}
+```{r}
+# torch_save(aced_model$state_dict(), "trained_aced_model.pt")
+
+A_mat = matrix(NA, aced_model$n_tasks, length(aced_model$latent_skill_levels))
+rownames(A_mat) <- rownames(aced_model$q_matrix)
+colnames(A_mat) <- colnames(aced_model$q_matrix)
+B_vec = rep(0, aced_model$n_tasks)
+names(B_vec) <- rownames(aced_model$q_matrix)
+
+for (i in 1:length(aced_model$evidence_models)) {
+  A_mat[i, which(aced_model$q_matrix[i, ])] <- as_array(aced_model$evidence_models[[i]]$aMat)
+  B_vec[i] <- aced_model$evidence_models[[i]]$bMat$item()
+}
+
+write.table(cbind(A_mat, B_vec), "../data/CPTtorch_trained_params.txt")
+```
+
+## Validating our Model
+```{r}
+for (i in 1:length(aced_model$evidence_models)) {
+  print(c("Model", i))
+  print('  A')
+  print(aced_model$evidence_models[[i]]$aMat)
+  print('  B')
+  print(aced_model$evidence_models[[i]]$bMat)
+  print('')
+  break
+}
+```
