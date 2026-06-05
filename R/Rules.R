@@ -432,8 +432,8 @@ CompensatoryGRRule <- torch::nn_module(
     classname="CompensatoryGRRule",
     inherit = CompensatoryRule,
     private=list(
-        atype=PType("pos",c(1L,J),oparams(list(lr=.01))),
-        btype=PType("incrK",c(K,1L),oparams(list(lr=.1)))
+        atype=PType("pos",c(1L,J),oparams=list(lr=.01)),
+        btype=PType("incrK",c(K,1L),oparams=list(lr=.1))
     )
 )
 
