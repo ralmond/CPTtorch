@@ -2,7 +2,7 @@
 
 deviance_loss <- function(datatab,cpt,ccbias=0,bin_eps=2^-35) {
   datatab <- torch_reshape(datatab,dim(cpt))$add(cpt,ccbias)
-  cpt$sum(bin_eps)$log()$mul(datatab)$sum()$mul(-2)
+  cpt$add(bin_eps)$log()$mul(datatab)$sum()$mul(-2)
 }
 penalty_fun = function(params,which,bias) {
   if (!is.null(params[[which]]))

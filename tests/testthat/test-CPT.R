@@ -198,14 +198,14 @@ test_that("CPT deviance AIC", {
   cptarr <- as_array(cpt)
 
   ## ccbias=0
-  dev <- -sum(log(cptarr))
+  dev <- -2*sum(log(cptarr))
   dattab <- torch_ones_like(cpt)
   cpt3$ccbias <- 0
   expect_equal(as.numeric(cpt3$deviance(dattab)),dev,tolerance=.00001)
   expect_equal(as.numeric(cpt3$AIC(dattab)),dev+12,tolerance=.00001)
 
   ##ccbias = 10
-  dev1 <- -sum((1+10*cptarr)*log(cptarr))
+  dev1 <- -2*sum((1+10*cptarr)*log(cptarr))
   cpt3$ccbias <- 10
   expect_equal(as.numeric(cpt3$deviance(dattab)),dev1,tolerance=.00001)
 

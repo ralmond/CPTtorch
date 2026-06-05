@@ -21,7 +21,7 @@ test_that("Build Loss Function.",{
   lf <-  build_loss_fun(mod0$ccbias,
                         mod0$penalities)
   expect_equal(as.numeric(lf(cpt,cpt,mod0$params())),
-               -11*log(1/3),
+               -2*11*log(1/3),
                tolerance=.0001)
   expect_true(TRUE)
 
@@ -37,6 +37,7 @@ test_that("Recovery Normal 0 parents", {
  mod1$bMat <- matrix(.5,1,1)
  cpt1 <- mod1$getCPT()
  dattab <- torch_mul(cpt1,1000)
+
 
  conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"),maxit=200L)
  if (!conv) warning("Model fitting did not converge")
