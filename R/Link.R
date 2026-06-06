@@ -9,6 +9,7 @@ CPT_Link <- torch::nn_module(
     guessP=NULL,
     etWidth=function() {self$K-1},
     high2low=FALSE,
+    device=NULL,
     private=list(
       k=NA,
       stype=NULL

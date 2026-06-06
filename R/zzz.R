@@ -7,6 +7,11 @@ TORCH_DEVICE <- if (cuda_is_available()) torch_device("cuda") else torch_device(
     value = if (cuda_is_available()) torch_device("cuda") else torch_device("cpu"),
     envir = parent.env(environment())  # package namespace
   )
+  if (is.null(getOption("CPTtorch_device")))
+    options(CPTtorch_device={
+      if (cuda_is_available()) torch_device("cuda")
+      else torch_device("cpu")
+    })
   # assign(
   #   x = "TORCH_DEVICE",
   #   value = torch_device("cpu"),

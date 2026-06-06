@@ -58,6 +58,7 @@ CombinationRule <- torch::nn_module(
     aop = "torch_mul",
     summary = "torch_sum",
     bop = "torch_add",
+    device=NULL,
     aVec = NULL,
     bVec = NULL,
     setParents = function(parents) {
@@ -90,10 +91,10 @@ CombinationRule <- torch::nn_module(
       self$QQ <- QQ
       self$high2low <- high2low
       if (!is.null(self$aType)) {
-        self$aMat <- defaultParameter10(private$atype, device=TORCH_DEVICE)
+        self$aMat <- defaultParameter10(private$atype, device=device)
       }
       if (!is.null(self$bType)) {
-        self$bMat <- defaultParameter10(private$btype, device=TORCH_DEVICE)
+        self$bMat <- defaultParameter10(private$btype, device=device)
       }
     },
     forward = function() {

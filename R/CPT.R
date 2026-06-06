@@ -4,19 +4,21 @@ deviance_loss <- function(datatab,cpt,ccbias=0,bin_eps=2^-35) {
   datatab <- torch_reshape(datatab,dim(cpt))$add(cpt,ccbias)
   cpt$add(bin_eps)$log()$mul(datatab)$sum()$mul(-2)
 }
-penalty_fun = function(params,which,bias) {
+penalty_fun = function(params,which,bias,device=TORCH_DEVICE) {
   if (!is.null(params[[which]]))
     params[[which]]$square()$sum()$mul(bias)
   else
-    torch_tensor(0,torch_double(),device=TORCH_DEVICE)
+    torch_tensor(0,torch_double(),device=device)
 }
 
-build_loss_fun <- function (ccbias,penalties,bin_eps=2^-35) {
+build_loss_fun <- function (ccbias,penalties,bin_eps=2^-35,
+                            device=TORCH_DEVICE) {
   function(dattab,cpt,params) {
     result <- deviance_loss(dattab,cpt,ccbias)
     for (ipar in names(penalties)) {
       result <- result$add(
-        penalty_fun(params,ipar,penalties[[ipar]])
+        penalty_fun(params,ipar,penalties[[ipar]],
+                    device=device)
       )
     }
     result
@@ -34,19 +36,22 @@ CPT_Model <- nn_module(
     oconstructor="optim_adam",
     oparams=list(lr=.1),
     lossfn=NULL,
+    device=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
                           QQ=TRUE,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE) {
       self$parentVals <- parents
       self$stateNames <- states
+      self$device <- device
       link <- getLink(linktype)
       if (is.null(link)) abort("Unknown link type",linktype)
-      self$link <- link$new(length(states),guess,slip,high2low)
+      self$link <- link$new(length(states),guess,slip,high2low,
+                            device=device)
 
       rule <- getRule(ruletype)
       if (is.null(rule)) abort("Unknown rule type",ruletype)
       self$rule <- rule$new(self$parentVals,
                             self$link$etWidth(),
-                            QQ,high2low)
+                            QQ,high2low,device=device)
     },
     forward = function () {
       private$cpt <- self$link$forward(self$rule$forward())
@@ -105,8 +110,9 @@ CPT_Model <- nn_module(
       self$lossfn <-
         jit_trace(build_loss_fun(self$ccbias,
                                  self$penalities,
-                                 self$bin_eps),
-          torch_ones(self$shp),
+                                 self$bin_eps,
+                                 device=self$device),
+          torch_ones(self$shp,device=self$device),
           self$forward(),
           self$params())
       self$optimizer <-
