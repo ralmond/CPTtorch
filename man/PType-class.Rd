@@ -4,7 +4,7 @@
 \alias{PType-class}
 \alias{availablePTypes}
 \alias{PType}
-\alias{isPtype}
+\alias{isPType}
 \title{Class \code{"PType"} -- a parameter description}
 \description{
 
@@ -18,9 +18,9 @@
 
 }
 \usage{
-PTypefunction(pType,dim=c(K,J), zero=NULL, used=TRUE)
+PType(pType,dim=c(K,J), zero=NULL, used=TRUE)
 availablePTypes()
-isPtype(obj)
+isPType(obj)
 }
 \arguments{
   \item{pType}{A character value giving the subtype of the parameter
@@ -246,7 +246,7 @@ pm <- matrix(exp(pv),3,2)
 natpar2Rvec(pt,pm)
 Rvec2natpar(pt,pv)
 
-qq <- matrix(c(T,F,T,F,T,T),3,2)
+qq <- matrix(c(TRUE,FALSE,TRUE,FALSE,TRUE,TRUE),3,2)
 whichUsed(pt) <- qq
 natpar2Rvec(pt,pm)
 

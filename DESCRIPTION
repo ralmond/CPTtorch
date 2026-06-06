@@ -22,7 +22,7 @@ RoxygenNote: 7.1.1
 URL: http://pluto.coe.fsu.edu/RNetica
 Depends: 
     methods, torch, R6,
-    R (>= 3.5.0)
+    R (>= 4.1.0)
 Imports: stats, utils, dplyr, rlang, purrr
 Suggests: 
     ggplot2,

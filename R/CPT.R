@@ -25,6 +25,8 @@ build_loss_fun <- function (ccbias,penalties,bin_eps=2^-35,
   }
 }
 
+### CPT_Model ----
+
 CPT_Model <- nn_module(
     classname="CPT_Model",
 #    inherit=nn_Module,

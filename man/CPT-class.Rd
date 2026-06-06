@@ -59,10 +59,10 @@
     \item{initialzie}{\code{signature(\var{ruletype}:char,
 	\var{linktype}:char,
 	\var{parents}=list(),\var{states}=character(),
-        \var{QQ}=TRUE)}.  Creates a new CPT model.  
+        \var{QQ}=TRUE)}.  Creates a new CPT model.
     }
     \item{forward}{\code{signature()}. }
-    \item{lscore}{\code{signature(\code{datatab}:tensor)}. }
+    \item{lscore}{\code{signature(datatab:tensor)}. }
     \item{getCPT}{\code{signature()}. }
     \item{getCPF}{\code{signature()}. }
     \item{getETFrame}{\code{signature()}. }

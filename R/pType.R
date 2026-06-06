@@ -152,7 +152,7 @@ checkParam.PType <- function(pType,par) {
   NextMethod()
 }
 
-as.array.numeric <- function (x) {x}
+as.array.numeric <- function (x,...) {x}
 
 
 checkParam.real <- function(pType,par) {

@@ -65,7 +65,7 @@
     }
     \item{forward}{\code{signature()}. Calculates the CPT from the
     current parameters.  Calling this function forces a recalculation.}
-    \item{lscore}{\code{signature(\code{datatab}:tensor)}. Calculates
+    \item{lscore}{\code{signature(datatab:tensor)}. Calculates
       the log probability of the data given in \code{datatab}. See
       calculating the score below. }
     \item{getCPT}{\code{signature()}. Gets the CPT, using a cached value
