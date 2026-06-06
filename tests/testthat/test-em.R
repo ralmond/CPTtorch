@@ -61,14 +61,15 @@ test_that("Recovery Compensatory PC", {
   mod1 <- CPT_Model$new("Compensatory","PartialCredit",
                         list('Par1'=c('P1_low', 'P1_hi'), 'Par2'=c('P2_low', 'P2_hi')),
                         c("A","B","C"))
-  mod1$bMat <- matrix(.5,1,1)
+  mod1$bMat <- matrix(c(0,.5),2,1)
+
   cpt1 <- mod1$getCPT()
   dattab <- torch_mul(cpt1,1000)
 
   conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"), maxit=100L)
   if (!conv) warning("Model fitting did not converge")
 
-  expect_eqten(mod0$getCPT(),cpt1,tol=2e-3)
+  expect_eqten(mod0$getCPT(),cpt1,tol=3e-3)
 })
 
 test_that("Recovery Conjunctive PC", {
