@@ -52,7 +52,7 @@ cartesian_prod(list_o_vecs)
   The output of \code{effectiveTheta} is a numeric vector of length
   \code{nlevels}.
 
-  The output of \code{buildeTheta()} is a tensor with columns
+  The output of \code{buildpTheta()} is a tensor with columns
   corresponding to the parent values and rows corresponding to
   configurations. The output of \code{cartesian_prod} is a data frame
   with similar rows and columns.

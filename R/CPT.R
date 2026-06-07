@@ -72,7 +72,7 @@ CPT_Model <- nn_module(
       plist <- list(
       aVec=self$rule$aVec,bVec=self$rule$bVec,
       sVec=self$link$sVec,gP=self$link$guessP,
-      sP=self$link$sP)
+      sP=self$link$slipP)
       plist[!sapply(plist,is.null)]
     },
     AIC = function(datatab) {
