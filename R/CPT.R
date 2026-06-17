@@ -38,10 +38,12 @@ CPT_Model <- nn_module(
     lossfn=NULL,
     device=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
-                          QQ=TRUE,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE) {
+                          QQ=TRUE,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE,
+                          parameterization=c("view","direct")) {
       self$parentVals <- parents
       self$stateNames <- states
       self$device <- device
+      parameterization <- match.arg(parameterization)
       link <- getLink(linktype)
       if (is.null(link)) abort("Unknown link type",linktype)
       self$link <- link$new(length(states),guess,slip,high2low,
@@ -51,7 +53,8 @@ CPT_Model <- nn_module(
       if (is.null(rule)) abort("Unknown rule type",ruletype)
       self$rule <- rule$new(self$parentVals,
                             self$link$etWidth(),
-                            QQ,high2low,device=device)
+                            QQ,high2low,device=device,
+                            parameterization=parameterization)
     },
     forward = function () {
       private$cpt <- self$link$forward(self$rule$forward())

@@ -84,8 +84,18 @@ CombinationRule <- torch::nn_module(
       }
       invisible(self)
     },
-    initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,device=TORCH_DEVICE,...) {
+    initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,device=TORCH_DEVICE,
+                           parameterization=c("view","direct"),...) {
       self$device <- device
+      # Parameterization of aMat/bMat, fixed at construction:
+      #   "view"   (default): aVec/bVec are unconstrained; aMat/bMat are
+      #            views via tvec2natpar (pos->exp, incrK->cumsum, ...).
+      #   "direct": aVec/bVec hold the natural-scale (used) entries directly;
+      #            aMat/bMat round-trip via pVec2pMat10 with no scale transform
+      #            and no constraint enforcement. Reproduces the pre-view-refactor
+      #            optimization in natural coordinates. whichUsed masking still
+      #            applies in both modes, so aVec stays 1-D and numparams() holds.
+      private$param_mode <- match.arg(parameterization)
       private$SJK$K <- nstates
       self$setParents(parents)
       self$QQ <- QQ
@@ -128,6 +138,7 @@ CombinationRule <- torch::nn_module(
         btype=PType("real",c(K,1L)),
         SJK=list(S=1L,J=1L,K=1L),
         high_low = FALSE,
+        param_mode = "view",
         pTheta=NULL,
         cache=NULL
     ),
@@ -170,32 +181,55 @@ CombinationRule <- torch::nn_module(
           whichUsed(private$atype) <- value
           invisible(self)
         },
+        parameterization=function(value) {
+          if (missing(value)) return (private$param_mode)
+          abort("parameterization is fixed at construction; rebuild the rule to change it.")
+        },
         aMat=function(value) {
           if (missing(value)) {
             if (is.null(self$aVec)) return (NULL)
-            amat <- tvec2natpar(private$atype,self$aVec)
-            return (amat)
+            if (identical(private$param_mode,"direct"))
+              return (pVec2pMat10(private$atype,self$aVec))
+            return (tvec2natpar(private$atype,self$aVec))
           }
-          pcheck <- checkParam(private$atype,value)
-          if (!isTRUE(pcheck))
-            abort(paste("Illegal A parameter value,",pcheck,"."))
-          private$cache <- NULL
           amat <- as_torch_tensor(value)
-          self$aVec <- nn_parameter(natpar2tvec(private$atype,amat))
+          if (identical(private$param_mode,"direct")) {
+            # Dimension-only check; direct mode is intentionally unconstrained.
+            if (!isTRUE(all.equal(as.integer(dim(amat)),
+                                  as.integer(pTypeDim(private$atype)))))
+              abort("A parameter has wrong dimensions for direct mode.")
+            private$cache <- NULL
+            self$aVec <- nn_parameter(pMat2pVec10(private$atype,amat))
+          } else {
+            pcheck <- checkParam(private$atype,value)
+            if (!isTRUE(pcheck))
+              abort(paste("Illegal A parameter value,",pcheck,"."))
+            private$cache <- NULL
+            self$aVec <- nn_parameter(natpar2tvec(private$atype,amat))
+          }
           invisible(self)
         },
         bMat=function(value) {
           if (missing(value)) {
             if (is.null(self$bVec)) return (NULL)
-            bmat <- tvec2natpar(private$btype,self$bVec)
-            return (bmat)
+            if (identical(private$param_mode,"direct"))
+              return (pVec2pMat10(private$btype,self$bVec))
+            return (tvec2natpar(private$btype,self$bVec))
           }
-          pcheck <- checkParam(private$btype,value)
-          if (!isTRUE(pcheck))
-            abort(paste("Illegal A parameter value,",pcheck,"."))
-          private$cache <- NULL
           bmat <- as_torch_tensor(value)
-           self$bVec <- nn_parameter(natpar2tvec(private$btype,bmat))
+          if (identical(private$param_mode,"direct")) {
+            if (!isTRUE(all.equal(as.integer(dim(bmat)),
+                                  as.integer(pTypeDim(private$btype)))))
+              abort("B parameter has wrong dimensions for direct mode.")
+            private$cache <- NULL
+            self$bVec <- nn_parameter(pMat2pVec10(private$btype,bmat))
+          } else {
+            pcheck <- checkParam(private$btype,value)
+            if (!isTRUE(pcheck))
+              abort(paste("Illegal B parameter value,",pcheck,"."))
+            private$cache <- NULL
+            self$bVec <- nn_parameter(natpar2tvec(private$btype,bmat))
+          }
           invisible(self)
         },
         et = function() {
