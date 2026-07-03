@@ -180,7 +180,7 @@ CombinationRule <- torch::nn_module(
           if (!isTRUE(pcheck))
             abort(paste("Illegal A parameter value,",pcheck,"."))
           private$cache <- NULL
-          amat <- as_torch_tensor(value)
+          amat <- as_torch_tensor(value, device=self$device)
           self$aVec <- nn_parameter(natpar2tvec(private$atype,amat))
           invisible(self)
         },
@@ -194,7 +194,7 @@ CombinationRule <- torch::nn_module(
           if (!isTRUE(pcheck))
             abort(paste("Illegal A parameter value,",pcheck,"."))
           private$cache <- NULL
-          bmat <- as_torch_tensor(value)
+          bmat <- as_torch_tensor(value, device=self$device)
            self$bVec <- nn_parameter(natpar2tvec(private$btype,bmat))
           invisible(self)
         },
