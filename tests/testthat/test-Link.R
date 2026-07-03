@@ -153,13 +153,33 @@ test_that("SoftmaxLink",{
 })
 
 test_that("GradedResponseLink",{
+  # Test GRL against hand-computed IRT GRM under the high2low-coupled-sign
+  # convention. With h2l=FALSE (default), link applies sigmoid(-D * et).
+  # The natural input is et = a*theta - b with ascending b — i.e., et
+  # columns decrease across cuts, which is what CompensatoryRule (or any
+  # IRT-style rule) produces.
+  #
+  # NOTE: the previous version of this test fed contrived increasing et
+  # and compared against CPTtools::gradedResponse, bypassing the cummax
+  # flattening artifact that surfaces with realistic Rule output. The
+  # h2l-coupled-sign change in GRL flipped this; the test now uses a
+  # realistic et + hand-computed ground truth.
   grl <- getLink("GradedResponse")$new(3)
-  et <- matrix(c(effectiveTheta(3),effectiveTheta(3)+1),3,2)
-  cpt <- grl$forward(torch_tensor(et))
-  cptt <- CPTtools::gradedResponse(et)
-  expect_equal(as.matrix(cpt),cptt,tolerance=.00001)
-  ##TODO:  Add test for D=1.0
+  D     <- as.numeric(grl$D)              # default 1.7
+  thetas <- effectiveTheta(3)
+  b     <- c(-0.5, 0.5)                   # ascending IRT thresholds
+  et    <- outer(thetas, b, FUN = "-")    # et = theta - b, columns decreasing
 
+  cpt <- as.matrix(grl$forward(torch_tensor(et)))
+
+  # Standard GRM: P(X >= k | theta) = sigmoid(D * (theta - b_k))
+  # P(X = k) = P(X >= k-1) - P(X >= k), with P(X >= 0)=1, P(X >= K)=0.
+  expected <- t(sapply(thetas, function(t) {
+    pge <- plogis(D * (t - b))
+    c(1 - pge[1], pge[1] - pge[2], pge[2])
+  }))
+
+  expect_equal(cpt, expected, tolerance = .00001)
 })
 
 test_that("PartialCreditLink",{

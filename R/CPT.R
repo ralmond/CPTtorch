@@ -70,7 +70,7 @@ CPT_Model <- nn_module(
       plist <- list(
       aVec=self$rule$aVec,bVec=self$rule$bVec,
       sVec=self$link$sVec,gP=self$link$guessP,
-      sP=self$link$sP)
+      sP=self$link$slipP)
       plist[!sapply(plist,is.null)]
     },
     AIC = function(datatab) {
@@ -109,7 +109,7 @@ CPT_Model <- nn_module(
       self$cache <- NULL
       self$lossfn <-
         jit_trace(build_loss_fun(self$ccbias,
-                                 self$penalities,
+                                 self$penalties,
                                  self$bin_eps,
                                  device=self$device),
           torch_ones(self$shp,device=self$device),
@@ -142,7 +142,7 @@ CPT_Model <- nn_module(
         states=character(),
         shape=c(1L,1L),
         cpt=NULL,
-        pbiases=list(aVec=NULL,bVec=NULL,sVec=NULL,
+        pbias=list(aVec=NULL,bVec=NULL,sVec=NULL,
                      gP=NULL,sP=NULL)
     ),
     active=list(
@@ -242,7 +242,7 @@ CPT_Model <- nn_module(
         },
         penalties=function(value) {
           if (missing(value))
-            return(private$pbias[!is.null(private$pbias)])
+            return(private$pbias[!sapply(private$pbias, is.null)])
           if (!is.list(value))
             stop("Value must be a list.")
           private$pbias <- value

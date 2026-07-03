@@ -227,15 +227,24 @@ SoftmaxLink <- torch::nn_module(
 GradedResponseLink <- torch::nn_module(
     classname="GradedResponseLink",
     inherit=DifferenceLink,
-    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...,D=-1.7) {
+    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,...,D=1.7) {
       super$initialize(nstates,guess,slip,high2low,...)
       self$D <- torch_tensor(D, device=self$device)
     },
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
-      et <- as_torch_tensor(et, device=self$device)
-      cuts2simplex(nnf_sigmoid(et$mul(-self$D)))
+      # Couple sigmoid sign to self$high2low so cuts2simplex never sees a
+      # decreasing-sigmoid input (which cummax would flatten, zeroing
+      # middle categories). With CompensatoryRule's et = a*theta - b and
+      # ascending b values, et columns come out decreasing across cuts;
+      # under default h2l=FALSE we need sigmoid(-D*et) to recover an
+      # increasing sequence. Under h2l=TRUE the rule pre-flips bMat, so
+      # et arrives in the opposite order and the positive sign is correct.
+      # D returns to a pure positive scale (1.7 default).
+      et   <- as_torch_tensor(et, device=self$device)
+      sign <- if (isTRUE(self$high2low)) 1 else -1
+      cuts2simplex(nnf_sigmoid(et$mul(sign * self$D)))
     },
     private=list(
       stype=NULL
