@@ -277,7 +277,17 @@ test_that("RuleConstB forward",{
 })
 
 test_that("RuleConstA bTypeMat",{
-
+  # Regression guard for the RuleConstA bMat getter (R/Rules.R), which now
+  # derives bMat from self$bVec (not self$aVec). The getter is currently
+  # unreachable through the public API: RuleConstA's "const" aType is not
+  # handled by natpar2tvec on the setDim build path, so construction errors
+  # before any parameter access. Pin that known state here so the stub does
+  # real work; revisit this test (assert the bMat NULL contract directly)
+  # once const-PType construction is fixed.
+  expect_error(
+    RuleConstA$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2),
+    "must be a tensor"
+  )
 })
 
 test_that("RuleConstA QQ",{

@@ -180,7 +180,7 @@ CombinationRule <- torch::nn_module(
           if (!isTRUE(pcheck))
             abort(paste("Illegal A parameter value,",pcheck,"."))
           private$cache <- NULL
-          amat <- as_torch_tensor(value)
+          amat <- as_torch_tensor(value, device=self$device)
           self$aVec <- nn_parameter(natpar2tvec(private$atype,amat))
           invisible(self)
         },
@@ -194,7 +194,7 @@ CombinationRule <- torch::nn_module(
           if (!isTRUE(pcheck))
             abort(paste("Illegal A parameter value,",pcheck,"."))
           private$cache <- NULL
-          bmat <- as_torch_tensor(value)
+          bmat <- as_torch_tensor(value, device=self$device)
            self$bVec <- nn_parameter(natpar2tvec(private$btype,bmat))
           invisible(self)
         },
@@ -360,9 +360,9 @@ RuleConstA <- nn_module(
         bMat=function(value) {
           if (missing(value)) {
             if (is.null(self$bVec)) return (NULL)
-            return (pVec2pMat10(private$btype,self$aVec))
+            return (pVec2pMat10(private$btype,self$bVec))
           }
-          warning("B parameter is ignored in ConstB Rules.")
+          warning("B parameter is ignored in ConstA Rules.")
           invisible(self)
         },
         QQ=function(value) {
