@@ -146,23 +146,23 @@
   levels higher is $g^2$, and three levels higher $g^3$.  This produces
   a guessing matrix:
 
-  \deqn{\mathbf{G} =\matrix{cccc}{
-      * \tab g \tab g^2 \tab g^3 \cr
-      0 \tab * \tab g   \tab g^2 \cr
-      0 \tab 0 \tab *   \tab g   \cr
-      0 \tab 0 \tab 0   \tab 1   \cr
-    }\ ,}
+  \deqn{\mathbf{G} =\begin{matrix}{cccc}
+      * & g & g^2 & g^3 \cr
+      0 & * & g   & g^2 \cr
+      0 & 0 & *   & g   \cr
+      0 & 0 & 0   & 1   \cr
+    \end{matrix}\ ,}
   where * is the value need to make the row sum to one.  Note, that to
   ensure that the sum is not greater than one, $g$ is restricted to be
   less than 1/2.
 
   Similarly, the slipping matrix is:
-  \deqn{\mathbf{E} =\matrix{cccc}{
-      1   \tab 0   \tab 0 \tab 0 \cr
-      e   \tab *   \tab 0 \tab 0 \cr
-      e^2 \tab e   \tab * \tab 0 \cr
-      e^3 \tab e^2 \tab e \tab * \cr
-    }\ .}
+  \deqn{\mathbf{E} =\begin{matrix}{cccc}
+      1   & 0   & 0 & 0 \cr
+      e   & *   & 0 & 0 \cr
+      e^2 & e   & * & 0 \cr
+      e^3 & e^2 & e & * \cr
+    \end{matrix}\ .}
 
   If both guessing and slipping parameters are applied, the resulting
   matrix is \eqn{\mathbf{G}\mathbf{E}}, that is first the guessing logic

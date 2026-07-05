@@ -8,7 +8,7 @@
 }
 \usage{
 natpar2Rvec(pType, natpar)
-Rvec2natpar(pType, natpar)
+Rvec2natpar(pType, Rvec)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -53,7 +53,7 @@ Rvec2natpar(pType, natpar)
 ##--	or standard data sets, see data().
 
 ## The function is currently defined as
-function (pType, natpar) 
+function (pType, natpar)
 UseMethod("natpar2Rvec")
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

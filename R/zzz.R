@@ -1,5 +1,10 @@
 TORCH_DEVICE <- if (cuda_is_available()) torch_device("cuda") else torch_device("cpu")
 
+.onAttach <- function(libname,pkgname) {
+  # require(torch)
+  # torch:::load_cudatoolkit_libs()
+}
+
 .onLoad <- function(libname, pkgname) {
   # Set the default device to "cuda" if available, otherwise "cpu"
   assign(
