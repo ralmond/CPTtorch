@@ -1,20 +1,28 @@
 Package: CPTtorch
 Type: Package
 Title: Building Conditional Probality Tables with Torch
-Date: 2025/02/03
-Version: 0.1.0
+Date: 2026/07/05
+Version: 0.1.1
 Author: Russell G. Almond
 Maintainer: Russell Almond <ralmond@fsu.edu>
 Authors@R: 
-    person(given = "Russell",
-           family = "Almond",
-           role = c("aut", "cre"),
-           email = "ralmond@fsu.edu",
-           comment = c(ORCID = "0000-0002-8876-9337"))
+    c(person(given = "Russell",
+             family = "Almond",
+             role = c("aut", "cre"),
+             email = "ralmond@fsu.edu",
+             comment = c(ORCID = "0000-0002-8876-9337")),
+      person(given = "Andrew",
+             family = "Krumm",
+             role = "aut",
+             email = "aekrumm@med.umich.edu"),
+      person(given="Krishna",
+             family="Saxena",
+             role="aut",
+             email="krsaxena@umich.edu"))
 Description: Provides support parameterized tables for Bayesian
              networks, particularly the IRT-like DiBello tables.
              Also, provides some tools for visualing the networks.
-License: MIT License
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -23,7 +31,7 @@ URL: http://pluto.coe.fsu.edu/RNetica
 Depends: 
     methods, torch, R6,
     R (>= 4.1.0)
-Imports: stats, utils, dplyr, rlang, purrr
+Imports: stats, utils, dplyr, rlang, purrr, mgcv
 Suggests: 
     ggplot2,
     lattice,
@@ -35,7 +43,7 @@ Suggests:
     withr,
     kableExtra,
     testthat (>= 3.0.0)
-Collate:  zzz.R transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R
+Collate:  zzz.R transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R writer.R
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 Support:  'National Science Foundation grant "Accelerating Professional Learning Through an Intelligent Performance Assessment System": DRL-2506438'

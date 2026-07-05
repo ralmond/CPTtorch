@@ -39,7 +39,8 @@ test_that("Recovery Normal 0 parents", {
  dattab <- torch_mul(cpt1,1000)
 
 
- conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"),maxit=200L)
+ #conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"),maxit=200L)
+ conv <- fit2table(mod0,dattab,maxit=200L)
  if (!conv) warning("Model fitting did not converge")
 
  expect_eqten(mod0$getCPT(),cpt1,tol=3e-3)
@@ -66,7 +67,8 @@ test_that("Recovery Compensatory PC", {
   cpt1 <- mod1$getCPT()
   dattab <- torch_mul(cpt1,1000)
 
-  conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"), maxit=100L)
+#  conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"), maxit=100L)
+  conv <- fit2table(mod0,dattab, maxit=100L)
   if (!conv) warning("Model fitting did not converge")
 
   expect_eqten(mod0$getCPT(),cpt1,tol=3e-3)
