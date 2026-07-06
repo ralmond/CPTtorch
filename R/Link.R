@@ -14,7 +14,7 @@ CPT_Link <- torch::nn_module(
       k=NA,
       stype=NULL
     ),
-    initialize=function(nstates,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE,...) {
+    initialize=function(nstates,guess=NA,slip=NA,high2low=TRUE,device=CPTtorch::CPTtorch_device(),...) {
       self$device <- device
       self$K <- nstates
       self$guess <- guess

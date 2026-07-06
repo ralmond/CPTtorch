@@ -1,3 +1,5 @@
+K <- J <- 1 ## K & J are unevaluated, but this suppresses warnings
+
 PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=TRUE) {
   res <- list(dimexpr=substitute(dim),dim=NULL,zero=zero, used=used,
               high2low=high2low)
@@ -122,7 +124,7 @@ getZero.character <- function(pType) {
     do.call(getS3method("getZero",pType),list())
 }
 defaultParameter <- function(pType) {UseMethod("defaultParameter")}
-defaultParameter10 <- function(pType, device=TORCH_DEVICE) {
+defaultParameter10 <- function(pType, device=CPTtorch_device()) {
   torch_tensor(defaultParameter(pType), dtype=torch_float(), device=device)
 }
 defaultParameter.PType <- function(pType) {

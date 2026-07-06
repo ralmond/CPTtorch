@@ -1,7 +1,11 @@
 import("rlang")
+import("R6")
+import("methods")
 import("torch")
+importFrom("stats", "pnorm", "qnorm")
+importFrom("utils", "getS3method")
 
-export(as_torch_tensor)
+export(as_torch_tensor,CPTtorch_device)
 S3method(as_torch_tensor,numeric)
 S3method(as_torch_tensor,torch_tensor)
 

@@ -47,7 +47,7 @@ Cognitively_Diagnostic_Model <- nn_module(
     oparams=list(lr=0.1),
     lossfn=NULL,
     initialize = function(ruletype,linktype,q_matrix,latent_skill_levels=list(),scoring_states=list(),
-                          guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE) {
+                          guess=NA,slip=NA,high2low=FALSE,device=CPTtorch::CPTtorch_device()) {
       stopifnot(length(latent_skill_levels)==dim(q_matrix)[[2]])
       stopifnot(self$n_tasks==dim(q_matrix)[[1]])
       self$n_tasks <- length(scoring_states)

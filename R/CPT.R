@@ -4,7 +4,7 @@ deviance_loss <- function(datatab,cpt,ccbias=0,bin_eps=2^-35) {
   datatab <- torch_reshape(datatab,dim(cpt))$add(cpt,ccbias)
   cpt$add(bin_eps)$log()$mul(datatab)$sum()$mul(-2)
 }
-penalty_fun = function(params,which,bias,device=TORCH_DEVICE) {
+penalty_fun = function(params,which,bias,device=CPTtorch::CPTtorch_device()) {
   if (!is.null(params[[which]]))
     params[[which]]$square()$sum()$mul(bias)
   else
@@ -12,7 +12,7 @@ penalty_fun = function(params,which,bias,device=TORCH_DEVICE) {
 }
 
 build_loss_fun <- function (ccbias,penalties,bin_eps=2^-35,
-                            device=TORCH_DEVICE) {
+                            device=CPTtorch_device()) {
   function(dattab,cpt,params) {
     result <- deviance_loss(dattab,cpt,ccbias)
     for (ipar in names(penalties)) {
@@ -40,7 +40,8 @@ CPT_Model <- nn_module(
     lossfn=NULL,
     device=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
-                          QQ=TRUE,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE) {
+                          QQ=TRUE,guess=NA,slip=NA,
+                          high2low=FALSE,device=CPTtorch::CPTtorch_device()) {
       self$parentVals <- parents
       self$stateNames <- states
       self$device <- device

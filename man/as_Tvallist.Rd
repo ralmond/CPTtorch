@@ -1,6 +1,7 @@
 \name{as_Tvallist}
 \alias{as_Tvallist}
 \alias{effectiveTheta}
+\alias{effectiveTheta10}
 \alias{buildpTheta10}
 \alias{cartesian_prod}
 \title{Build a Mapping from Variable States to Theta Values.
@@ -15,7 +16,8 @@
 \usage{
 as_Tvallist(parents, parentprefix="P", stateprefix="S", high2low=TRUE)
 effectiveTheta(nlevels,high2low=TRUE)
-buildpTheta10(Tvallist,device=TORCH_DEVICE)
+effectiveTheta10(nlevels,high2low=TRUE,device=CPTtorch_device())
+buildpTheta10(Tvallist,device=CPTtorch_device())
 cartesian_prod(list_o_vecs)
 }
 \arguments{
@@ -33,6 +35,8 @@ cartesian_prod(list_o_vecs)
   \item{Tvallist}{A named list of named numeric vectors, i.e., the
     output of \code{as_Tvallist()}.}
   \item{list_o_vecs}{A list of vectors.}
+  \item{device}{The \code{\link[torch]{torch_device}} which should be
+    used for building tensors.  Defaults to \code{\link{CPTtorch_device}()}.}
 }
 \value{
 
@@ -50,7 +54,7 @@ cartesian_prod(list_o_vecs)
   If there are no parents, this is an empty list.
 
   The output of \code{effectiveTheta} is a numeric vector of length
-  \code{nlevels}.
+  \code{nlevels}. The output of \code{effectiveTheta10} is a tensor.
 
   The output of \code{buildpTheta()} is a tensor with columns
   corresponding to the parent values and rows corresponding to

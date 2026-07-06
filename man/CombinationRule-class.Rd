@@ -46,12 +46,14 @@
     \item{summary}{This is the summary function used in the algorithm
       (see Algorithm).  It should have
       \code{signature(self:torch_tensor, dim:integer)}.}
-    \item{high2low}{A logical value.  If true, then the child states
+    \item{high2low}{A logical value.  If true (default), then the child states
       are ordered from highest to lowest, and the A, B and QQ parameters
       should have their columns reversed.}
      \item{pTheta}{This is the calculated Parent Theta Matrix.  The
       recommended way to set this field is through the
       \code{$setParents()} method.}
+    \item{device}{The \code{\link[torch]{torch_device}} that should be used
+      for building tensors.}
   }
 
 }
@@ -86,7 +88,8 @@
       adjusts the dimensions of the parameters.  (See Parameter
       Dimensions).  Note that setting this value can reset the parameter
       values.}
-    \item{initialize}{\code{signature(parents,nstates,QQ=true,...)}. This
+    \item{initialize}{\code{signature(parents,nstates,QQ=true,high2low=TRUE,
+                            device=CPTtorch_device(),...)}. This
       initializes a new Rule object.  See Initialization.}
     \item{forward}{\code{signature()}. This function calculates the
       effective theta table from the parent theta matrix.}
@@ -325,7 +328,7 @@ constant rules) or to produce a more efficient implementation (see the
   \code{CombinationRule} using the \command{\link{getRule}(\var{name})}
   function.  (A list of currently available rules can be found with
   \command{avilableRules()}.)  Then the \command{$new(\var{parents},
-    \var{nstates}, \var{QQ}, ...)} should be invoked on the result.
+    \var{nstates}, \var{QQ}, \var{high2low}, \var{device}, ...)} should be invoked on the result.
   The arguments are as follows:
 
   \describe{
@@ -339,6 +342,10 @@ constant rules) or to produce a more efficient implementation (see the
     \item{\code{QQ}}{If supplied this should be a logical tensor with
       dimensions \eqn{K \times J} (see Inner Q-matrix above).  If
       ommitted, it defaults to \code{TRUE}.}
+    \item{\code{high2low}}{Logical value defaults to \code{TRUE}.
+      Whether states are ordered high2low or low2high.}
+    \item{\code{device}}{The \code{\link[torch]{torch_device}} to use when
+      building tensors, defaults to \code{\link{CPTtorch_device}()}.}
     \item{\dots}{This is supplied so that subclasses can add additional
       arguments.}
   }

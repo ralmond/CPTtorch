@@ -13,11 +13,11 @@ test_that("Link leakMat", {
   al <- CPT_Link$new(3)
   expect_null(al$leakmat())
   al <- CPT_Link$new(3,guess=.3)
-  expect_equal(as.matrix(al$leakmat()),guessmat(3,.3),tolerance=.00001)
+  expect_equal(as.matrix(al$leakmat()),guessmat(3,.3)[,3:1],tolerance=.00001)
   al <- CPT_Link$new(3,slip=.2)
-  expect_equal(as.matrix(al$leakmat()),slipmat(3,.2),tolerance=.00001)
+  expect_equal(as.matrix(al$leakmat()),slipmat(3,.2)[,3:1],tolerance=.00001)
   al <- CPT_Link$new(3,slip=.2,guess=.3)
-  expect_equal(as.matrix(al$leakmat()),guessmat(3,.3)%*%slipmat(3,.2),
+  expect_equal(as.matrix(al$leakmat()),guessmat(3,.3)[,3:1]%*%slipmat(3,.2)[,3:1],
                tolerance=.00001)
 })
 
@@ -26,7 +26,7 @@ test_that("Link link forward", {
   gl <- PotentialLink$new(3)
   et <- torch_eye(3)
   expect_equal(as.matrix(gl$link(et)),diag(3),tolerance=.00001)
-  expect_equal(as.matrix(gl$forward(et)),diag(3),tolerance=.00001)
+  expect_equal(as.matrix(gl$forward(et)),diag(3)[,3:1],tolerance=.00001)
   gl$guess <- .3
   expect_equal(as.matrix(gl$forward(et)),guessmat(3,.3),tolerance=.00001)
 
@@ -88,7 +88,7 @@ test_that("PotentialLink",{
   ## link
   et <- torch_tensor(matrix(c(1.5,3,4.5,.3,.2,.1),2,3,byrow=TRUE))
   expt <- matrix(c(1,2,3,3,2,1),2,3,byrow=TRUE)/6
-  expect_equal(as.matrix(pl$forward(et)),expt,tolerance=.00001)
+  expect_equal(as.matrix(pl$forward(et)),expt[,3:1],tolerance=.00001)
 
 })
 
@@ -99,12 +99,12 @@ test_that("StepProbsLink",{
   ## link
   et <- torch_tensor(matrix(c(.5,.5,.8,.25),2,2,byrow=TRUE))
   expt <- matrix(c(.5,.25,.25,.2,.6,.2),2,3,byrow=TRUE)
-  expect_equal(as.matrix(spl$forward(et)),expt,tolerance=.00001)
+  expect_equal(as.matrix(spl$forward(et)),expt[,3:1],tolerance=.00001)
 
   spl2 <- getLink("StepProbs")$new(2)
   et2 <- torch_tensor(matrix(c(.5,.8),2,1,byrow=TRUE))
   expt2 <- matrix(c(.5,.5,.2,.8),2,2,byrow=TRUE)
-  expect_equal(as.matrix(spl2$forward(et2)),expt2,tolerance=.00001)
+  expect_equal(as.matrix(spl2$forward(et2)),expt2[,2:1],tolerance=.00001)
 
 })
 
@@ -125,7 +125,7 @@ test_that("DifferenceLink",{
   dl2 <- getLink("Difference")$new(2)
   tm2 <- torch_tensor(matrix(c(.75,.7),2,1,byrow=TRUE))
   expp2 <- matrix(c(.75,.25,.7,.3),2,2,byrow=TRUE)
-  expect_equal(as.matrix(dl2$forward(tm2)),expp2,tolerance=.00001)
+  expect_equal(as.matrix(dl2$forward(tm2)),expp2[,2:1],tolerance=.00001)
 
 })
 
@@ -206,7 +206,7 @@ test_that("GaussianLink",{
   cptt <- matrix(c(0.002584588,0.194493858,0.858451586,
                    0.1389638,0.6110123,0.1389638,
                    0.858451586,0.194493858,0.002584588),3,3)
-  expect_equal(as.matrix(cpt),cptt,
+  expect_equal(as.matrix(cpt),cptt[,3:1],
                tolerance=.00001)
 
 

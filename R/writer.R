@@ -26,7 +26,7 @@ writeCPT <- function(cpt) {
   jsonlite::toJSON(jlist)
 }
 
-readCPT <- function (serial,device=TORCH_DEVICE) {
+readCPT <- function (serial,device=CPTtorch_device()) {
   jlist <- jsonlite::fromJSON(serial,FALSE)
   if (jlist$classname != "CPT_Model") {
     stop("Expected CPT_Model JSON")

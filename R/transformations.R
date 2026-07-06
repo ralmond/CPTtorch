@@ -1,11 +1,11 @@
 #####################################################
 ## Primitive Link functions
 
-as_torch_tensor <- function (x,device=TORCH_DEVICE) {UseMethod("as_torch_tensor")}
-as_torch_tensor.numeric <- function(x,device=TORCH_DEVICE) {
+as_torch_tensor <- function (x,device=CPTtorch_device()) {UseMethod("as_torch_tensor")}
+as_torch_tensor.numeric <- function(x,device=CPTtorch_device()) {
   torch_tensor(x,dtype=torch_float(),device=device)
   }
-as_torch_tensor.torch_tensor <- function(x,device=TORCH_DEVICE) {x$to(device=device)}
+as_torch_tensor.torch_tensor <- function(x,device=CPTtorch_device()) {x$to(device=device)}
 
 
 logit <- function (p) {log(p/(1-p))}

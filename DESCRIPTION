@@ -42,6 +42,7 @@ Suggests:
     vdiffr,
     withr,
     kableExtra,
+    jsonlite,
     testthat (>= 3.0.0)
 Collate:  zzz.R transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R writer.R
 VignetteBuilder: knitr
