@@ -386,42 +386,32 @@ test_that("checkParam incrK",{
   pt <- setpTypeDim(PType("incrK",dim=c(K,J)),K=3,J=2)
   pmi <- matrix(1:6,3,2)
   pmd <- matrix(6:1,3,2)
-  expect_true(isTRUE(checkParam(pt,pmi)))
-  expect_false(isTRUE(checkParam(pt,pmd)))
-
-  pt$high2low <- TRUE
-  expect_true(isTRUE(checkParam(pt,pmd)))
   expect_false(isTRUE(checkParam(pt,pmi)))
+  expect_true(isTRUE(checkParam(pt,pmd)))
+
+  pt$high2low <- FALSE
+  expect_false(isTRUE(checkParam(pt,pmd)))
+  expect_true(isTRUE(checkParam(pt,pmi)))
 })
 
 test_that("natpar2Rvec Rvec2natpar incrK",{
   pt <- setpTypeDim(PType("incrK",dim=c(K,J)),K=3,J=2)
-  pmi <- matrix(1:6,3,2)
-  pvi <- c(1,0,0,4,0,0)
-
-  expect_equal(natpar2Rvec(pt,pmi),pvi)
-  expect_equal(Rvec2natpar(pt,pvi),pmi)
-
-  pt$high2low <- TRUE
   pmd <- matrix(6:1,3,2)
   pvd <- c(4,0,0,1,0,0)
 
   expect_equal(natpar2Rvec(pt,pmd),pvd)
   expect_equal(Rvec2natpar(pt,pvd),pmd)
 
+  pt$high2low <- FALSE
+  pmi <- matrix(1:6,3,2)
+  pvi <- c(1,0,0,4,0,0)
+
+  expect_equal(natpar2Rvec(pt,pmi),pvi)
+  expect_equal(Rvec2natpar(pt,pvi),pmi)
 })
 
 test_that("natpar2tvec tvec2natpar incrK",{
   pt <- setpTypeDim(PType("incrK",dim=c(K,J)),K=3,J=2)
-  pmi <- matrix((1:6)+.1,3,2)
-  pvi <- c(1.1,0,0,4.1,0,0)
-
-  expect_equal(as.numeric(natpar2tvec(pt,torch_tensor(pmi))),pvi,
-               tolerance=.000001)
-  expect_equal(as.matrix(tvec2natpar(pt,torch_tensor(pvi))),pmi,
-               tolerance=.000001)
-
-  pt$high2low <- TRUE
   pmd <- matrix(6:1+.1,3,2)
   pvd <- c(4.1,0,0,1.1,0,0)
 
@@ -430,11 +420,22 @@ test_that("natpar2tvec tvec2natpar incrK",{
   expect_equal(as.matrix(tvec2natpar(pt,torch_tensor(pvd))),pmd,
                tolerance=.00001)
 
+  pt$high2low <- FALSE
+  pmi <- matrix((1:6)+.1,3,2)
+  pvi <- c(1.1,0,0,4.1,0,0)
+
+  expect_equal(as.numeric(natpar2tvec(pt,torch_tensor(pmi))),pvi,
+               tolerance=.000001)
+  expect_equal(as.matrix(tvec2natpar(pt,torch_tensor(pvi))),pmi,
+               tolerance=.000001)
+
 })
 
 test_that("getZero defaultParameter incrK",{
   pt <- setpTypeDim(PType("incrK",dim=c(K,J)),K=3,J=2)
   expect_equal(getZero(pt),0)
+  expect_equal(defaultParameter(pt),matrix(2:0,3,2))
+  pt$high2low <- FALSE
   expect_equal(defaultParameter(pt),matrix(0:2,3,2))
 })
 

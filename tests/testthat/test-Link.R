@@ -187,9 +187,9 @@ test_that("PartialCreditLink",{
   et <- matrix(c(effectiveTheta(3),effectiveTheta(3)+1),3,2)
   cpt <- pcl$forward(torch_tensor(et))
   #cptt <- CPTtools::partialCredit(et[,2:1])[,3:1]
-  cptt <- matrix(c(0.715733243,0.133798105,0.006535826,
-                   0.1381985, 0.1337981, 0.0338492,
-                   0.1460683, 0.7324038, 0.9596150),3,3)
+  cptt <- matrix(c(0.006535826,0.133798105,0.715733243,
+                   0.0338492, 0.1337981, 0.1381985,
+                   0.9596150, 0.7324038, 0.1460683),3,3)
   expect_equal(as.matrix(cpt),cptt,tolerance=.00001)
   ##TODO:  Add test for D=1.0
 
@@ -203,9 +203,9 @@ test_that("GaussianLink",{
   gl$linkScale <- .5
   cpt <- gl$forward(et)
   #cptt <- CPTtools::normalLink(matrix(et,3,2),.5)[,3:1]
-  cptt <- matrix(c(0.858451586,0.194493858,0.002584588,
+  cptt <- matrix(c(0.002584588,0.194493858,0.858451586,
                    0.1389638,0.6110123,0.1389638,
-                   0.002584588,0.194493858,0.858451586),3,3)
+                   0.858451586,0.194493858,0.002584588),3,3)
   expect_equal(as.matrix(cpt),cptt,
                tolerance=.00001)
 

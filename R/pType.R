@@ -1,4 +1,4 @@
-PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=FALSE) {
+PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=TRUE) {
   res <- list(dimexpr=substitute(dim),dim=NULL,zero=zero, used=used,
               high2low=high2low)
   class(res) <- c(pType,"PType")
@@ -287,7 +287,11 @@ defaultParameter.incrK <- function(pType) {
   if (is.null(zero)) zero <- getZero(pType)
   if (is.numeric(pTypeDim(pType))) {
     zero <- array(zero,pTypeDim(pType))
-    zero <- sweep(zero,1,0:(nrow(zero)-1),"+")
+    if (pType$high2low) {
+      zero <- sweep(zero,1,(nrow(zero)-1):0,"+")
+    } else {
+      zero <- sweep(zero,1,0:(nrow(zero)-1),"+")
+    }
   }
   zero
 }

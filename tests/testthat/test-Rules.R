@@ -1,10 +1,10 @@
 
 test_that("effectiveTheta 10",{
   ef1 <- effectiveTheta(3)
-  ef2 <- effectiveTheta(3,TRUE)
+  ef2 <- effectiveTheta(3,FALSE)
   expect_equal(ef1,-ef2,tolerance=.0001)
   tf1 <- effectiveTheta10(3)
-  tf2 <- effectiveTheta10(3,TRUE)
+  tf2 <- effectiveTheta10(3,FALSE)
   expect_equal(as.numeric(tf1),-as.numeric(ef2),tolerance=.0001)
 
 })
@@ -61,7 +61,7 @@ test_that("as_Tvallist",{
   expect_equal(sum(tvl20ps[[2]]),6)
 
   ## 2 parents low2high
-  tvl2lh <- as_Tvallist(c(A=3,B=4))
+  tvl2lh <- as_Tvallist(c(A=3,B=4),high2low=FALSE)
   expect_lt(tvl2lh[[1]][1],tvl2lh[[1]][3])
   expect_lt(tvl2lh[[2]][1],tvl2lh[[2]][4])
 

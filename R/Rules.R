@@ -3,12 +3,12 @@
 ### Calculates the effective theta values for a skill variable
 ### with the argument number of levels
 
-effectiveTheta <- function (nlevels,high2low=FALSE) {
+effectiveTheta <- function (nlevels,high2low=TRUE) {
   et <- qnorm((2*(1:nlevels)-1)/(2*nlevels))
   if (high2low) rev(et)
   else et
 }
-effectiveTheta10 <- function (nlevels,high2low=FALSE,device=TORCH_DEVICE) {
+effectiveTheta10 <- function (nlevels,high2low=TRUE,device=TORCH_DEVICE) {
   torch_tensor(effectiveTheta(nlevels,high2low),device=device)
 }
 
@@ -22,7 +22,7 @@ buildpTheta10 <- function(Tvallist,device=TORCH_DEVICE) {
 cartesian_prod <- function (list_o_vecs)
   rev(expand.grid(rev(list_o_vecs)))
 
-as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=FALSE) {
+as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=TRUE) {
   pnames <- names(parents)
   if (length(parents) > 0L && length(pnames) == 0L) {
     pnames <- paste0(parentprefix,1L:length(parents))

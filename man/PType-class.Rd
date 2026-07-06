@@ -18,7 +18,7 @@
 
 }
 \usage{
-PType(pType,dim=c(K,J), zero=NULL, used=TRUE)
+PType(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=TRUE)
 availablePTypes()
 isPType(obj)
 }
@@ -38,7 +38,8 @@ isPType(obj)
     the same dimension as the parameter.  Cells of the parameter matrix
     corresponding to \code{FALSE} are ignored.  See \code{\link{whichUsed}}.}
   \item{obj}{An object to be tested if it follows the \code{PType} protocol.}
-
+  \item{high2low}{A logical flag, if true, states of variables are ordered
+    from highest to lowest.}
 }
 \section{Extends and Extensions}{
 
@@ -128,7 +129,7 @@ isPType(obj)
   difficulties (negative intercepts).  The final effective theta output
   is a \eqn{S \times K'} matrix, computed by \eqn{\Theta A^{T} - B},
   where the dimensions are replicated as necessary.  The value of
-  \eqn{K'} is determined by the \code{\linkS4class{LinkFunction}} and
+  \eqn{K'} is determined by the \code{\linkS4class{CPT_Link}} and
   is generally \eqn{K-1} for the graded response and partial credit link
   functions, and 1 for the normal link function.  For the graded
   response link function, the \eqn{A} parameters are typically restricted
@@ -253,3 +254,5 @@ natpar2Rvec(pt,pm)
 
 }
 \keyword{classes}
+\keyword{ attributes }
+\concept{ PType }
