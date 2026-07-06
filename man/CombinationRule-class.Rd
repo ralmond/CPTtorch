@@ -16,7 +16,7 @@
   them down to a set of \emph{effective thetas} for each parent
   combination.  In general the number of columns in the effective theta
   matrix is related to the number of states in the child variable with
-  the exact definition given by the \link{CPT_Link} function used.
+  the exact definition given by the \linkS4class{CPT_Link} function used.
 
 }
 \value{
@@ -121,7 +121,7 @@
   variable.  Each value should be a numeric vector of length \eqn{M_j}
   giving the assigned real values of the parent states.
 
-  This is passed to \code{\link[torch]{torch_cartisian_product}} (see
+  This is passed to \code{\link[torch]{torch_cartesian_product}} (see
   also \code{\link[base]{expand.grid}}) to produce an \eqn{S \times J}
   matrix of all possible combinations of the parent states.  Here
   \eqn{S = \prod_j M_j}; that is each row corresponds to a possible combination
@@ -442,9 +442,17 @@ hyper-Dirichlet model.
 }
 \author{Russell Almond}
 \seealso{
+  \code{\linkS4class{PType}}, \code{\link{genMMt}}, \code{\link{as_Tvallist}},
+  \code{\linkS4class{CPT_Link}}, \code{\linkS4class{CPT_Model}}
 
+  \code{\link{getRule}},\code{\link{setRule}},\code{\link{availableRules}}
 }
 \references{
+
+  A complete description of combination rules and link functions can be found in
+
+  Almond, R. G., Mislevy, R. J., Steinberg, L. S., Yan, D. and Williamson, D. M. (2015).
+  \emph{Bayesian Networks in Educational Asessments.} Springer.
 
 }
 \keyword{classes}

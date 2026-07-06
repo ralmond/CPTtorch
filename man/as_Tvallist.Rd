@@ -109,7 +109,8 @@ cartesian_prod(list_o_vecs)
 }
 \author{Russell Almond}
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+
+  \code{\linkS4class{CombinationRule}}, \code{\linkS4class{CPT_Model}}
 }
 \examples{
 

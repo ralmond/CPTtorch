@@ -1,6 +1,6 @@
 ---
 title: "Expectation_Maximization"
-output: html_document
+output: rmarkdown::html_vignette
 ---
 
 # EM Algo with `Cognitively_Diagnostic_Model`
@@ -14,7 +14,7 @@ We load the ACED scores and exam design metadata (e.g., Q-matrix) from the [CPTt
 ```{r}
 devtools::load_all("..")
 library(CPTtorch)
-load('../data/ACED.Rdata')
+load(system.file('data/ACED.RData',package="CPTtorch"))
 print(TORCH_DEVICE)
 ```
 

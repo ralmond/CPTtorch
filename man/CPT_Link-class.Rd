@@ -6,7 +6,7 @@
 \description{
 
   This function takes the effective theta tensor, the output of a
-  \code{\link{CombinationRule}} and converts it into a conditional
+  \code{\linkS4class{CombinationRule}} and converts it into a conditional
   probability table.  This may require an additional \code{linkScale}
   parameter.
 
@@ -112,7 +112,7 @@
 
   \emph{Normalization} (used by \code{PotentialLink} and
   \code{SoftmaxLink}).  Each cell is divided by the sum across the last
-  dimension (see \code{\link{torch_simplexify}}).  For this strategy, the
+  dimension (see \code{\link[torch]{torch_simplexify}}).  For this strategy, the
   number of columns of the input effective theta tensor should be
   \eqn{K}.
 
@@ -243,7 +243,7 @@
 }
 \section{Superclasses and Subclasses}{
 
-  The \code{CombinationRule} is a subclass of
+  The \code{CPT_Link} is a subclass of
   \code{\link[torch]{nn_module}}.  The two most
   important inherited methods are \code{$forward()} which calculates the
   CPT from the effective theta tensor and \code{$parameters} which returns
@@ -254,7 +254,7 @@
 }
 \section{Creating Subclasses}{
 
-  A subclass of \code{CombinationRule} can be created using the
+  A subclass of \code{CPT_Link} can be created using the
   \code{\link[torch]{nn_module}} function, and having it inherit from
   the \code{CPT_Link} class.  The \code{$link} field should be set to a
   function which takes the effective theta tensor and returns the
@@ -287,6 +287,18 @@
 }
 \author{Russell Almond}
 \seealso{
+  \code{\linkS4class{PType}}, \code{\link{guessmat}} and \code{\link{slipmat}},
+  \code{\linkS4class{CombinationRule}}, \code{\linkS4class{CPT_Model}}
+
+  \code{\link{getLink}},\code{\link{setLink}},\code{\link{availableLinks}}
+
+}
+\references{
+
+  A complete description of combination rules and link functions can be found in
+
+  Almond, R. G., Mislevy, R. J., Steinberg, L. S., Yan, D. and Williamson, D. M. (2015).
+  \emph{Bayesian Networks in Educational Asessments.} Springer.
 
 }
 \keyword{classes}

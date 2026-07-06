@@ -17,7 +17,7 @@ whichUsed(pType)
 whichUsed(pType) <- value
 }
 \arguments{
-  \item{pType}{A \code{\linkS4class{P4Type}} object describing the paramter.}
+  \item{pType}{A \code{\linkS4class{PType}} object describing the paramter.}
   \item{value}{A logical matrix of the same dimensions as the parameter
     or the scalar value \code{TRUE}.}
 }
