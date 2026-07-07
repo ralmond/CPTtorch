@@ -66,6 +66,16 @@ checkParam(pType, par)
   \code{\linkS4class{PType}}
 }
 \examples{
+  pt <- setpTypeDim(PType("unit"),K=3,J=2)
+  af <- matrix((1:6)/10,3,2)
+  checkParam(pt,af)
+  af[2,2] <- -3
+  checkParam(pt,af)
+  af[2,2] <- 3
+  checkParam(pt,af)
+  af[2,2] <- NA
+  checkParam(pt,af)
+
 }
 \keyword{ attributes }
 \concept{ PType }

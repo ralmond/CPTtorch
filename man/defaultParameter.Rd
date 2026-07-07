@@ -1,61 +1,61 @@
 \name{defaultParameter}
 \alias{defaultParameter}
+\alias{defaultParameter.incrK}
+\alias{defaultParameter10}
 \alias{getZero}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{Gets an initial value for a parameter.}
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+
+  This creates a default parameter which follows the rules of the the
+  \code{\linkS4class{PType}}.
 }
 \usage{
 defaultParameter(pType)
+\method{defaultParameter}{incrK}(pType)
+defaultParameter10(pType,device=CPTtorch::CPTtorch_device())
 getZero(pType)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{pType}{
-%%     ~~Describe \code{pType} here~~
-}
+  \item{pType}{An object of class \code{\linkS4class{PType}} giving
+    the type of parameter.}
+  \item{device}{The \code{\link[torch]{torch_device}} to use when building
+    the tensor.  Defaults to \code{\link{CPTtorch_device}()}.}
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+  The function \code{getZero()} returns the value which should be taken as
+  a natural zero for this parameter type.
+
+  If the shape of the parameter has been established through a call to
+  \code{\link{setpTypeDim}}, then \code{defaultParameter} fills an array
+  of the proper shape with zeros. The method \code{defaultParameter.incrK}
+
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
-}
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
-}
+  The function \code{getZero()} returns a number.
+  The function \code{defaultParameter()} returns either a number or
+  an array if the dimensions are set; \code{defaultParameter10} returns
+  a tensor.
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
+}
+\author{Russell Almond}
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+  \code{\linkS4class{PType}}, \code{\link{checkParam}}
+  \code{\link{setpTypeDim}}
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or standard data sets, see data().
 
-## The function is currently defined as
-function (pType) 
-UseMethod("DefaultParameter")
+  pt <- PType("real")
+  getZero(pt)
+  defaultParameter(pt)
+
+  pt <- setpTypeDim(pt,K=3,J=2)
+  defaultParameter(pt)
+
+  pt <- setpTypeDim(PType("incrK",dim=c(K,J)),K=3,J=2)
+  getZero(pt)
+  defaultParameter(pt)
+
+
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory (show via RShowDoc("KEYWORDS")):
-% \keyword{ ~kwd1 }
-% \keyword{ ~kwd2 }
-% Use only one keyword per line.
-% For non-standard keywords, use \concept instead of \keyword:
-% \concept{ ~cpt1 }
-% \concept{ ~cpt2 }
-% Use only one concept per line.
+\keyword{ attributes }
+\concept{ PType }
