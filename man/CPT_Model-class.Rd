@@ -3,6 +3,7 @@
 \docType{class}
 \alias{CPT-class}
 \alias{CPT_Model-class}
+\alias{CPT_Model}
 \title{Class \code{"CPT_Model"} -- Model for a conditional probability tensor.}
 \description{
 

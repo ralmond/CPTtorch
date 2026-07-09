@@ -53,6 +53,8 @@ as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=TRU
 ############
 ## New OO version
 
+### CombinationRule ----
+
 CombinationRule <- torch::nn_module(
     classname="CombinationRule",
 #    inherit = nn_Module,
@@ -217,6 +219,9 @@ CombinationRule <- torch::nn_module(
 
 RuleASB <- CombinationRule
 
+
+### RuleBSA ----
+
 RuleBSA <- torch::nn_module(
     classname="RuleBSA",
     inherit = CombinationRule,
@@ -259,6 +264,8 @@ RuleBSA <- torch::nn_module(
     )
 )
 
+
+### RuleBAS ----
 
 RuleBAS <- torch::nn_module(
     classname="RuleBAS",
@@ -305,7 +312,7 @@ RuleBAS <- torch::nn_module(
 )
 
 
-
+### RuleConstB ----
 
 RuleConstB <- nn_module(
     classname="RuleConstB",
@@ -342,6 +349,8 @@ RuleConstB <- nn_module(
     )
 )
 
+### RuleConstA ----
+
 RuleConstA <- nn_module(
     classname="RuleConstA",
     inherit = CombinationRule,
@@ -376,6 +385,8 @@ RuleConstA <- nn_module(
         }
     )
 )
+
+### CompensatoryRule ---
 
 
 CompensatoryRule <- torch::nn_module(
@@ -420,6 +431,7 @@ CompensatoryRule <- torch::nn_module(
     }
 )
 
+### CompensatoryGRRule ----
 
 CompensatoryGRRule <- torch::nn_module(
     classname="CompensatoryGRRule",
@@ -429,6 +441,8 @@ CompensatoryGRRule <- torch::nn_module(
         btype=PType("incrK",c(K,1L))
     )
 )
+
+### ConjunctiveRule ----
 
 
 ConjunctiveRule <- torch::nn_module(
@@ -443,6 +457,8 @@ ConjunctiveRule <- torch::nn_module(
      )
 )
 
+### DisjunctiveRule ----
+
 DisjunctiveRule <- torch::nn_module(
     classname="DisjunctiveRule",
     inherit = RuleBSA,
@@ -455,6 +471,7 @@ DisjunctiveRule <- torch::nn_module(
      )
 )
 
+### NoisyAndRule ----
 
 NoisyAndRule <- torch::nn_module(
     classname="NoisyAndRule",
@@ -467,6 +484,8 @@ NoisyAndRule <- torch::nn_module(
         btype=PType("real",c(K,J))
      )
 )
+
+### NoisyOrRule ----
 
 NoisyOrRule <- torch::nn_module(
     classname="NoisyAndRule",
@@ -483,7 +502,7 @@ NoisyOrRule <- torch::nn_module(
 
 
 
-
+### CenterRule ----
 
 CenterRule <- torch::nn_module(
     classname="CenterRule",
@@ -496,6 +515,8 @@ CenterRule <- torch::nn_module(
         btype=PType("real",c(S,K))
      )
 )
+
+### DirichletRule ----
 
 DirichletRule <- torch::nn_module(
     classname="DirichletRule",
