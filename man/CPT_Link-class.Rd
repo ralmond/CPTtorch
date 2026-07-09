@@ -114,7 +114,7 @@
 
   \emph{Normalization} (used by \code{PotentialLink} and
   \code{SoftmaxLink}).  Each cell is divided by the sum across the last
-  dimension (see \code{\link[torch]{torch_simplexify}}).  For this strategy, the
+  dimension (see \code{\link{torch_simplexify}}).  For this strategy, the
   number of columns of the input effective theta tensor should be
   \eqn{K}.
 

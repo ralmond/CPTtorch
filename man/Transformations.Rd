@@ -2,14 +2,23 @@
 \alias{transformations}
 \alias{logit}
 \alias{invlogit}
+\alias{torch_pnorm}
+\alias{torch_qnorm}
 \alias{cloglog}
+\alias{torch_cloglog}
 \alias{invcloglog}
+\alias{torch_invcloglog}
 \alias{ldiff}
+\alias{torch_ldiff}
 \alias{lldiff}
+\alias{torch_lldiff}
 \alias{ecusum}
+\alias{torch_ecusum}
 \alias{eecusum}
+\alias{torch_eecusum}
 \alias{stickbreak}
 \alias{invstickbreak}
+\alias{torch_invstickbreak}
 \alias{softmax}
 \title{Transformations to make Parameter Spaces Span Real Numbers}
 \description{
@@ -25,14 +34,23 @@
 \usage{
 logit(p)
 invlogit(x)
+torch_pnorm(x)
+torch_qnorm(x)
 cloglog(p)
+torch_cloglog(p)
 invcloglog(x)
+torch_invcloglog(x)
 ldiff(v)
+torch_ldiff(v)
 ecusum(vv)
+torch_ecusum(vv)
 lldiff(v)
+torch_lldiff(v)
 eecusum(vv)
+torch_eecusum(vv)
 stickbreak(p)
 invstickbreak(q)
+torch_invstickbreak(q)
 softmax(x)
 }
 \arguments{
@@ -145,6 +163,8 @@ softmax(x)
   The operators which work on vectors do not handle missing values
   gracefully.  These need to be purged before being put to work.
 
+  Some functions already have torch equivalents.  \code{\link[stats]{qnorm}} and
+  \code{\link[stats]{pnorm}} are already in the \code{stats} package.
 }
 \seealso{
   \code{\link{pMat2pVec}}, \code{\link{natpar2Rvec}}, \code{\link{Rvec2natpar}}

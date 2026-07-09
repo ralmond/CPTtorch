@@ -124,7 +124,7 @@ getZero.character <- function(pType) {
     do.call(getS3method("getZero",pType),list())
 }
 defaultParameter <- function(pType) {UseMethod("defaultParameter")}
-defaultParameter10 <- function(pType, device=CPTtorch_device()) {
+defaultParameter10 <- function(pType, device=CPTtorch::CPTtorch_device()) {
   torch_tensor(defaultParameter(pType), dtype=torch_float(), device=device)
 }
 defaultParameter.PType <- function(pType) {

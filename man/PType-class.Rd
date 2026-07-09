@@ -10,7 +10,7 @@
 
   This is an abstract desription of a parameter for a
   \code{\linkS4class{CombinationRule}} or
-  \code{\linkS4class{LinkFunction}}.  Note that the dimensions are
+  \code{\linkS4class{CPT_Link}}.  Note that the dimensions are
   saved as an expression so that later the number of parent variables,
   \eqn{J}, the number of parent state combinations, \eqn{S}, and the
   number of states for the child variable, \eqn{K} can be subsituted in
@@ -164,11 +164,11 @@ isPType(obj)
   parameter vector and \code{\link{Rvec2natpar}} restores the matrix to
   the right shape (with arbitrary values in the unused cells).
 
-  Finally, the function \code{\link{defaultValues}} creates a parameter
+  Finally, the function \code{\link{defaultParameter}} creates a parameter
   object of the necessary shape (assuming te dimensions have been
   finalized) which has a valid value.  The function
   \code{\link{getZero}} returns a default value, and the default method
-  for \code{defaultValues} fills the matrix with that value.
+  for \code{defaultParameter} fills the matrix with that value.
 
 }
 \section{Available Subclasses}{
@@ -227,7 +227,7 @@ isPType(obj)
 \seealso{
 
   \code{\linkS4class{CombinationRule}},
-  \code{\linkS4class{LinkFunction}},
+  \code{\linkS4class{CPT_Link}},
 
   \code{\link{setpTypeDim}}, \code{\link{whichUsed}},
   \code{\link{pMat2pVec}}, \code{\link{checkParam}},

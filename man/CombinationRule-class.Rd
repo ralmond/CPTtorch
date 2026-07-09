@@ -124,7 +124,7 @@
   variable.  Each value should be a numeric vector of length \eqn{M_j}
   giving the assigned real values of the parent states.
 
-  This is passed to \code{\link[torch]{torch_cartesian_product}} (see
+  This is passed to \code{\link[torch]{torch_cartesian_prod}} (see
   also \code{\link[base]{expand.grid}}) to produce an \eqn{S \times J}
   matrix of all possible combinations of the parent states.  Here
   \eqn{S = \prod_j M_j}; that is each row corresponds to a possible combination
