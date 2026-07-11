@@ -88,6 +88,19 @@ setRule(name,value)
 
 
 }
+\references{
+
+  Almond, R. (2015). An IRT-based Parameterization for Conditional
+  Probability Tables. In J. M. Agosta & R. N. Carvalho (Eds.),
+  \emph{Proceedings of the Twelfth UAI Bayesian Modeling Applications
+  Workshop (BMAW 2015)} (Vol. 1565, pp. 14–23).
+  \url{http://ceur-ws.org/Vol-1565/bmaw2015_paper4.pdf}
+
+  Almond, R. G., Mislevy, R. J., Steinberg, L. S., Williamson, D. M.,
+  & Yan, D. (2015). \emph{Bayesian Networks in Educational Assessment.}
+  Springer. \url{http://www.springer.com/statistics/social+sciences+\%26+law/book/978-1-4939-2124-9}
+
+}
 \author{Russell Almond}
 \seealso{
   \code{\linkS4class{CombinationRule}},
