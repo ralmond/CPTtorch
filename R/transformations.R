@@ -36,7 +36,7 @@ torch_simplexify <- function (x,dim=-1L) {
 softmax <- function (x) {
   m <- exp(x)
   if (is.matrix(x))
-    sweep(m,1,rowSums(m),"%/%")
+    sweep(m,1,rowSums(m),"%//%")
   else
     m %//% sum(m)
 }
