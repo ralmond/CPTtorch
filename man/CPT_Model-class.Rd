@@ -17,6 +17,10 @@
   \describe{
     \item{rule}{The \code{\linkS4class{CombinationRule}} in the model.}
     \item{link}{The \code{\linkS4class{CPT_Link}} in the model.}
+    \item{high2low}{A logical value.  If true (default), then the states are
+      ordered from highest to lowest.}
+    \item{device}{The \code{\link[torch]{torch_device}} that should be used
+      for building tensors.}
   }
 
 
@@ -60,8 +64,8 @@
     \item{initialzie}{\code{signature(\var{ruletype}:char,
 	    \var{linktype}:char,
 	    \var{parents}=list(),\var{states}=character(),
-      \var{QQ}=TRUE),\var{guess}=NA,\var{slip}=NA,\var{high2low}=FALSE,
-      \var{device}=TORCH_DEVICE}.  Creates a new CPT model.  See Construtor
+      \var{QQ}=TRUE),\var{guess}=NA,\var{slip}=NA,\var{high2low}=TRUE,
+      \var{device}=CPTtorch_device()}.  Creates a new CPT model.  See Construtor
       section below.
     }
     \item{forward}{\code{signature()}. Calculates the CPT from the
@@ -141,7 +145,7 @@
 
   \code{CPT_Model} objects are constructed by a call to
     \code{CPT_Model$new(ruletype,linktype,parents=list(),states=character(),
-        QQ=TRUE,guess=NA,slip=NA,high2low=FALSE,device=TORCH_DEVICE)}.
+        QQ=TRUE,guess=NA,slip=NA,high2low=TRUE,device=CPTtorch_device())}.
 
   \describe{
     \item{ruletype}{A character scalar giving the name of the combination rule.

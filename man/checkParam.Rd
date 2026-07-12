@@ -63,23 +63,19 @@ checkParam(pType, par)
 
 }
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+  \code{\linkS4class{PType}}
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or standard data sets, see data().
+  pt <- setpTypeDim(PType("unit"),K=3,J=2)
+  af <- matrix((1:6)/10,3,2)
+  checkParam(pt,af)
+  af[2,2] <- -3
+  checkParam(pt,af)
+  af[2,2] <- 3
+  checkParam(pt,af)
+  af[2,2] <- NA
+  checkParam(pt,af)
 
-## The function is currently defined as
-function (pType, par)
-UseMethod("checkParam")
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory (show via RShowDoc("KEYWORDS")):
-% \keyword{ ~kwd1 }
-% \keyword{ ~kwd2 }
-% Use only one keyword per line.
-% For non-standard keywords, use \concept instead of \keyword:
-% \concept{ ~cpt1 }
-% \concept{ ~cpt2 }
-% Use only one concept per line.
+\keyword{ attributes }
+\concept{ PType }

@@ -6,7 +6,7 @@
 \description{
 
   This function takes the effective theta tensor, the output of a
-  \code{\link{CombinationRule}} and converts it into a conditional
+  \code{\linkS4class{CombinationRule}} and converts it into a conditional
   probability table.  This may require an additional \code{linkScale}
   parameter.
 
@@ -26,8 +26,10 @@
     \item{slipP,guessP}{This is either a \code{nn_parameter()}
       containing the logit of the slipping/guessing parameter, or
       \code{NULL} inidicating that it not use.}
-    \item{high2low}{A logical value.  If true, then the columns are
+    \item{high2low}{A logical value.  If true (default), then the columns are
       reversed in the final graph.}
+    \item{device}{The \code{\link[torch]{torch_device}} that should be used
+      for building tensors.}
   }
 
   The value of \eqn{D=1.7} is used with the \code{SoftmaxLink}, the
@@ -72,8 +74,8 @@
     \item{etWidth}{\code{signature()} Returns the expected number of
       columns in the effective theta table.  }
     \item{initialize}{\code{signature(\var{nstates}:int,\var{guess}=NA,
-      \var{slip}=NA, \var{high2low}=FALSE)} initializes
-      the link. }
+      \var{slip}=NA, \var{high2low}=TRUE, \var{device}=CPTtorch_device())}
+      initializes the link. }
     \item{leakmat}{\code{signature()}. Either returns a leaking mattrix
     	if the slip or guess parameter is set, or returns \code{NULL} if
     	neither were set.}
@@ -211,7 +213,7 @@
   The normal way to create a new link function object is to fetch the
   link function from the library with the function
   \code{\link{getLink}(\var{name})$new(\var{nstates},\var{guess},
-  \var{slip},\var{high2low})}, where
+  \var{slip},\var{high2low},\var{device})}, where
   \code{nstates} is the number of states in in the child variable.
   The function \code{\link{availableLinks}()} lists currently registered
   link functions.
@@ -237,13 +239,16 @@
   corresponding fields.  If left at the default value of \code{NA}, then
   the slipping and guessing adjustments will not be made.
 
-  If the \code{high2low} flag is set, then the columns of the final CPT
+  If the \code{high2low} flag is set (default TRUE), then the columns of the final CPT
   will be reversed to make the states go from highest to lowest.
+
+  The \code{device} is which \code{\link[torch]{torch_device}} to use
+  when building the link model.  Defaults to \code{\link{CPTtorch_device}()}.
 
 }
 \section{Superclasses and Subclasses}{
 
-  The \code{CombinationRule} is a subclass of
+  The \code{CPT_Link} is a subclass of
   \code{\link[torch]{nn_module}}.  The two most
   important inherited methods are \code{$forward()} which calculates the
   CPT from the effective theta tensor and \code{$parameters} which returns
@@ -254,7 +259,7 @@
 }
 \section{Creating Subclasses}{
 
-  A subclass of \code{CombinationRule} can be created using the
+  A subclass of \code{CPT_Link} can be created using the
   \code{\link[torch]{nn_module}} function, and having it inherit from
   the \code{CPT_Link} class.  The \code{$link} field should be set to a
   function which takes the effective theta tensor and returns the
@@ -287,6 +292,18 @@
 }
 \author{Russell Almond}
 \seealso{
+  \code{\linkS4class{PType}}, \code{\link{guessmat}} and \code{\link{slipmat}},
+  \code{\linkS4class{CombinationRule}}, \code{\linkS4class{CPT_Model}}
+
+  \code{\link{getLink}},\code{\link{setLink}},\code{\link{availableLinks}}
+
+}
+\references{
+
+  A complete description of combination rules and link functions can be found in
+
+  Almond, R. G., Mislevy, R. J., Steinberg, L. S., Yan, D. and Williamson, D. M. (2015).
+  \emph{Bayesian Networks in Educational Asessments.} Springer.
 
 }
 \keyword{classes}

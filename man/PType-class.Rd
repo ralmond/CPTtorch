@@ -10,7 +10,7 @@
 
   This is an abstract desription of a parameter for a
   \code{\linkS4class{CombinationRule}} or
-  \code{\linkS4class{LinkFunction}}.  Note that the dimensions are
+  \code{\linkS4class{CPT_Link}}.  Note that the dimensions are
   saved as an expression so that later the number of parent variables,
   \eqn{J}, the number of parent state combinations, \eqn{S}, and the
   number of states for the child variable, \eqn{K} can be subsituted in
@@ -18,7 +18,7 @@
 
 }
 \usage{
-PType(pType,dim=c(K,J), zero=NULL, used=TRUE)
+PType(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=TRUE)
 availablePTypes()
 isPType(obj)
 }
@@ -38,7 +38,8 @@ isPType(obj)
     the same dimension as the parameter.  Cells of the parameter matrix
     corresponding to \code{FALSE} are ignored.  See \code{\link{whichUsed}}.}
   \item{obj}{An object to be tested if it follows the \code{PType} protocol.}
-
+  \item{high2low}{A logical flag, if true, states of variables are ordered
+    from highest to lowest.}
 }
 \section{Extends and Extensions}{
 
@@ -128,7 +129,7 @@ isPType(obj)
   difficulties (negative intercepts).  The final effective theta output
   is a \eqn{S \times K'} matrix, computed by \eqn{\Theta A^{T} - B},
   where the dimensions are replicated as necessary.  The value of
-  \eqn{K'} is determined by the \code{\linkS4class{LinkFunction}} and
+  \eqn{K'} is determined by the \code{\linkS4class{CPT_Link}} and
   is generally \eqn{K-1} for the graded response and partial credit link
   functions, and 1 for the normal link function.  For the graded
   response link function, the \eqn{A} parameters are typically restricted
@@ -163,11 +164,11 @@ isPType(obj)
   parameter vector and \code{\link{Rvec2natpar}} restores the matrix to
   the right shape (with arbitrary values in the unused cells).
 
-  Finally, the function \code{\link{defaultValues}} creates a parameter
+  Finally, the function \code{\link{defaultParameter}} creates a parameter
   object of the necessary shape (assuming te dimensions have been
   finalized) which has a valid value.  The function
   \code{\link{getZero}} returns a default value, and the default method
-  for \code{defaultValues} fills the matrix with that value.
+  for \code{defaultParameter} fills the matrix with that value.
 
 }
 \section{Available Subclasses}{
@@ -226,7 +227,7 @@ isPType(obj)
 \seealso{
 
   \code{\linkS4class{CombinationRule}},
-  \code{\linkS4class{LinkFunction}},
+  \code{\linkS4class{CPT_Link}},
 
   \code{\link{setpTypeDim}}, \code{\link{whichUsed}},
   \code{\link{pMat2pVec}}, \code{\link{checkParam}},
@@ -253,3 +254,5 @@ natpar2Rvec(pt,pm)
 
 }
 \keyword{classes}
+\keyword{ attributes }
+\concept{ PType }

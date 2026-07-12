@@ -1,11 +1,11 @@
 #####################################################
 ## Primitive Link functions
 
-as_torch_tensor <- function (x,device=TORCH_DEVICE) {UseMethod("as_torch_tensor")}
-as_torch_tensor.numeric <- function(x,device=TORCH_DEVICE) {
+as_torch_tensor <- function (x,device=CPTtorch_device()) {UseMethod("as_torch_tensor")}
+as_torch_tensor.numeric <- function(x,device=CPTtorch_device()) {
   torch_tensor(x,dtype=torch_float(),device=device)
   }
-as_torch_tensor.torch_tensor <- function(x,device=TORCH_DEVICE) {x$to(device=device)}
+as_torch_tensor.torch_tensor <- function(x,device=CPTtorch_device()) {x$to(device=device)}
 
 
 logit <- function (p) {log(p/(1-p))}
@@ -45,7 +45,7 @@ lsoftmax <- function(x) {log(softmax(x))}
 cloglog <- function(p) {log(-log(1-p))}
 torch_cloglog <- function (p) {torch_neg(p)$add(1)$log()$neg()$log()}
 invcloglog <- function (x) {1-exp(-exp(x))}
-torch_invcloglog <- function (p) {torch_exp(p)$neg()$exp()$neg()$add(1)}
+torch_invcloglog <- function (x) {torch_exp(x)$neg()$exp()$neg()$add(1)}
 
 tcat <- function(v1,v2) {
   if (length(dim(v1))==0L) v1 <- torch_reshape(v1,-1)

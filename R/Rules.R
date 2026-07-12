@@ -3,17 +3,18 @@
 ### Calculates the effective theta values for a skill variable
 ### with the argument number of levels
 
-effectiveTheta <- function (nlevels,high2low=FALSE) {
+effectiveTheta <- function (nlevels,high2low=TRUE) {
   et <- qnorm((2*(1:nlevels)-1)/(2*nlevels))
   if (high2low) rev(et)
   else et
 }
-effectiveTheta10 <- function (nlevels,high2low=FALSE,device=TORCH_DEVICE) {
+effectiveTheta10 <- function (nlevels,high2low=TRUE,
+                              device=CPTtorch_device()) {
   torch_tensor(effectiveTheta(nlevels,high2low),device=device)
 }
 
 
-buildpTheta10 <- function(Tvallist,device=TORCH_DEVICE) {
+buildpTheta10 <- function(Tvallist,device=CPTtorch_device()) {
   if (length(Tvallist)==0L) return(torch_tensor(0.0,device=device))
   if (length(Tvallist)==1L) return(torch_reshape(torch_tensor(Tvallist[[1]],device=device),c(-1,1)))
   return(torch_cartesian_prod(lapply(Tvallist, function(x) as_torch_tensor(x)$to(device=device))))
@@ -22,7 +23,7 @@ buildpTheta10 <- function(Tvallist,device=TORCH_DEVICE) {
 cartesian_prod <- function (list_o_vecs)
   rev(expand.grid(rev(list_o_vecs)))
 
-as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=FALSE) {
+as_Tvallist <- function (parents, parentprefix="P", stateprefix="S",high2low=TRUE) {
   pnames <- names(parents)
   if (length(parents) > 0L && length(pnames) == 0L) {
     pnames <- paste0(parentprefix,1L:length(parents))
@@ -84,7 +85,8 @@ CombinationRule <- torch::nn_module(
       }
       invisible(self)
     },
-    initialize = function (parents, nstates, QQ=TRUE, high2low=FALSE,device=TORCH_DEVICE,...) {
+    initialize = function (parents, nstates, QQ=TRUE,
+                           high2low=TRUE,device=CPTtorch::CPTtorch_device(),...) {
       self$device <- device
       private$SJK$K <- nstates
       self$setParents(parents)

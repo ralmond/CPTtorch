@@ -13,11 +13,11 @@ Authors@R:
              comment = c(ORCID = "0000-0002-8876-9337")),
       person(given = "Andrew",
              family = "Krumm",
-             role = "aut",
+             role = "ctb",
              email = "aekrumm@med.umich.edu"),
       person(given="Krishna",
              family="Saxena",
-             role="aut",
+             role="ctb",
              email="krsaxena@umich.edu"))
 Description: Provides support parameterized tables for Bayesian
              networks, particularly the IRT-like DiBello tables.
@@ -42,6 +42,7 @@ Suggests:
     vdiffr,
     withr,
     kableExtra,
+    jsonlite,
     testthat (>= 3.0.0)
 Collate:  zzz.R transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R writer.R
 VignetteBuilder: knitr

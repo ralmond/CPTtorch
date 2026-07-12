@@ -1,4 +1,6 @@
-PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=FALSE) {
+K <- J <- 1 ## K & J are unevaluated, but this suppresses warnings
+
+PType <- function(pType,dim=c(K,J), zero=NULL, used=TRUE, high2low=TRUE) {
   res <- list(dimexpr=substitute(dim),dim=NULL,zero=zero, used=used,
               high2low=high2low)
   class(res) <- c(pType,"PType")
@@ -122,7 +124,7 @@ getZero.character <- function(pType) {
     do.call(getS3method("getZero",pType),list())
 }
 defaultParameter <- function(pType) {UseMethod("defaultParameter")}
-defaultParameter10 <- function(pType, device=TORCH_DEVICE) {
+defaultParameter10 <- function(pType, device=CPTtorch::CPTtorch_device()) {
   torch_tensor(defaultParameter(pType), dtype=torch_float(), device=device)
 }
 defaultParameter.PType <- function(pType) {
@@ -287,7 +289,11 @@ defaultParameter.incrK <- function(pType) {
   if (is.null(zero)) zero <- getZero(pType)
   if (is.numeric(pTypeDim(pType))) {
     zero <- array(zero,pTypeDim(pType))
-    zero <- sweep(zero,1,0:(nrow(zero)-1),"+")
+    if (pType$high2low) {
+      zero <- sweep(zero,1,(nrow(zero)-1):0,"+")
+    } else {
+      zero <- sweep(zero,1,0:(nrow(zero)-1),"+")
+    }
   }
   zero
 }

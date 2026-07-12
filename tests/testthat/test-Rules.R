@@ -1,10 +1,10 @@
 
 test_that("effectiveTheta 10",{
   ef1 <- effectiveTheta(3)
-  ef2 <- effectiveTheta(3,TRUE)
+  ef2 <- effectiveTheta(3,FALSE)
   expect_equal(ef1,-ef2,tolerance=.0001)
   tf1 <- effectiveTheta10(3)
-  tf2 <- effectiveTheta10(3,TRUE)
+  tf2 <- effectiveTheta10(3,FALSE)
   expect_equal(as.numeric(tf1),-as.numeric(ef2),tolerance=.0001)
 
 })
@@ -61,7 +61,7 @@ test_that("as_Tvallist",{
   expect_equal(sum(tvl20ps[[2]]),6)
 
   ## 2 parents low2high
-  tvl2lh <- as_Tvallist(c(A=3,B=4))
+  tvl2lh <- as_Tvallist(c(A=3,B=4),high2low=FALSE)
   expect_lt(tvl2lh[[1]][1],tvl2lh[[1]][3])
   expect_lt(tvl2lh[[2]][1],tvl2lh[[2]][4])
 
@@ -120,13 +120,13 @@ test_that("Rule initialize",{
   expect_equal(pTypeDim(cr$aType),c(3,2))
   expect_equal(pTypeDim(cr$bType),c(3,1))
   expect_equal(names(cr$pNames),c("P1","P2"))
-  expect_equal(cr$high2low,FALSE)
+  expect_equal(cr$high2low,TRUE)
   expect_equal(cr$QQ,TRUE)
 
   cr1 <- getRule("Compensatory")$new(as_Tvallist(c(2,2)),3,
                                      QQ=matrix(c(TRUE,FALSE,TRUE,FALSE,TRUE,TRUE),3,2),
-                                     high2low=TRUE)
-  expect_equal(cr1$high2low,TRUE)
+                                     high2low=FALSE)
+  expect_equal(cr1$high2low,FALSE)
   expect_equal(dim(cr1$QQ),c(3,2))
 })
 
@@ -305,14 +305,14 @@ test_that("CompensatoryRule",{
   cr$bMat <- as_torch_tensor(matrix(c(0,10),2,1))
   expt <- matrix(c(0,2,1,3,0,2,2,4),4,2)/sqrt(2)
   expt[,2] <- expt[,2]-10
-  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
+  expect_equal(as.matrix(cr$et),expt[,2:1],tolerance=.0001)
 
 })
 
 test_that("CompensatoryGRRule",{
   cr <- getRule("CompensatoryGR")$new(as_Tvallist(list(A=c(0,1),B=c(0,1))),2)
   cr$aMat <- as_torch_tensor(matrix(c(1,2),1,2,byrow=TRUE))
-  cr$bMat <- as_torch_tensor(matrix(c(0,10),2,1))
+  cr$bMat <- as_torch_tensor(matrix(c(10,0),2,1))
   expt <- matrix(c(0,2,1,3,0,2,1,3),4,2)/sqrt(2)
   expt[,2] <- expt[,2]-10
   expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
@@ -324,7 +324,7 @@ test_that("ConjunctiveRule",{
   cr$aMat <- as_torch_tensor(matrix(c(1,2),2,1,byrow=TRUE))
   cr$bMat <- as_torch_tensor(matrix(c(0,1,1,0),2,2))
   expt <- matrix(c(-1,0,-1,0,-2,-2,0,0),4,2)
-  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
+  expect_equal(as.matrix(cr$et),expt[,2:1],tolerance=.0001)
 
 })
 
@@ -333,7 +333,7 @@ test_that("DisjunctiveRule",{
   cr$aMat <- as_torch_tensor(matrix(c(1,2),2,1,byrow=TRUE))
   cr$bMat <- as_torch_tensor(matrix(c(0,1,1,0),2,2))
   expt <- matrix(c(0,0,1,1,0,2,0,2),4,2)
-  expect_equal(as.matrix(cr$et),expt,tolerance=.0001)
+  expect_equal(as.matrix(cr$et),expt[,2:1],tolerance=.0001)
 
 })
 
@@ -361,7 +361,7 @@ test_that("CenterRule",{
   expect_equal(as.numeric(cr$et),.5,tolerance=.00001)
   cr <- getRule("Center")$new(as_Tvallist(c(2)),1)
   cr$bMat <- as_torch_tensor(matrix(c(-.5,.5),2,1))
-  expect_equal(as.numeric(cr$et),c(-.5,.5),tolerance=.00001)
+  expect_equal(as.numeric(cr$et),c(.5,-.5),tolerance=.00001)
 
 })
 
@@ -369,7 +369,7 @@ test_that("DirichletRule",{
   cr <- getRule("Dirichlet")$new(as_Tvallist(c(3)),2)
   cr$bMat <- as_torch_tensor(matrix(c(8,2,5,5,2,8),3,2,byrow=TRUE))
   expt <-matrix(c(8,2,5,5,2,8),3,2,byrow=TRUE)
-  expect_equal(as.matrix(cr$et),expt,tolerance=.00001)
+  expect_equal(as.matrix(cr$et),expt[,2:1],tolerance=.00001)
 })
 
 test_that("getRule setRule availableRules",{
