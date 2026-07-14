@@ -113,11 +113,11 @@ tvec2natpar(pType, Rvec)
       transformation is \code{\link{softmax}} and the transformation is
       log.}
     \item{cpMat}{Each row of the matrix sums to one.  It uses log/softmax
-      on each row.  It uses \code{\link{rowlist2pMat}} and
+      on each row.  It uses \code{\link{list2vec}} and
       \code{\link{vec2rowlist}} to operate row-by-row.}
     \item{const}{These return null as there is no parameter.}
     \item{incrK}{Here the natural parameter is increasing in columns, so the
-      transformation is \code{\link{ecusum}}.  It uses \code{\link{collist2pMat}} and
+      transformation is \code{\link{ecusum}}.  It uses \code{\link{collist2pMat10}} and
       \code{\link{vec2collist}} to operate column-by-column.}
   }
 

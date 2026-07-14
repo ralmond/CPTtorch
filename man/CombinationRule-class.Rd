@@ -2,6 +2,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{CombinationRule-class}
+\alias{CombinationRule}
 \alias{RuleASB}
 \alias{RuleBSA}
 \alias{RuleBAS}

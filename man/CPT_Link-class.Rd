@@ -2,6 +2,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{CPT_Link-class}
+\alias{CPT_Link}
 \title{Class \code{"CPT_Link"} -- Calculates CPT from Effective Thetas}
 \description{
 

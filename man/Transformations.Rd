@@ -2,6 +2,9 @@
 \alias{transformations}
 \alias{logit}
 \alias{invlogit}
+\alias{linvlogit}
+\alias{probit}
+\alias{invprobit}
 \alias{torch_pnorm}
 \alias{torch_qnorm}
 \alias{cloglog}
@@ -20,6 +23,7 @@
 \alias{invstickbreak}
 \alias{torch_invstickbreak}
 \alias{softmax}
+\alias{lsoftmax}
 \title{Transformations to make Parameter Spaces Span Real Numbers}
 \description{
 
@@ -34,6 +38,9 @@
 \usage{
 logit(p)
 invlogit(x)
+linvlogit(x)
+probit(p)
+invprobit(x)
 torch_pnorm(x)
 torch_qnorm(x)
 cloglog(p)
@@ -52,6 +59,7 @@ stickbreak(p)
 invstickbreak(q)
 torch_invstickbreak(q)
 softmax(x)
+lsoftmax(x)
 }
 \arguments{
   \item{p}{A vector of probabilities (between 0 and 1)}
@@ -85,12 +93,20 @@ softmax(x)
 
   \deqn{\mathrm{invlogit} (x) = \frac{1}{1+e^{x}}}
 
+  Often uses argument \eqn{Dx} where \eqn{D=1.7}
+  makes the logistic function approximately the same
+  as the normal ogive.
+
   \emph{Unit Parameters (2).} \code{cloglog()}--\code{invcloglog()}.
   Another possible transformation is the complementary log-log.
 
   \deqn{\mathrm{cloglog} (p) = \log\left(-\log(1-p)\right)}
 
   \deqn{\mathrm{invcloglog} (x) = 1-\exp(-\exp(x))}
+
+
+  \emph{Unit Parameters (3).} \code{probit()}--\code{invprobit()}
+    Uses the normal ogive (cumulative distribution function).
 
   \emph{Increasing Real Numbers}.  \code{ldiff()}--\code{ecusum()}.  If
   the series is strictly increasing, the differences must be strictly
@@ -150,6 +166,9 @@ softmax(x)
   The function \code{stickbreak()} takes values on the unit simplex
   and returns a vector with one few elements of values on the unit
   interval.  The funciton \code{invstickbreak()} does the reverse.
+
+  Functions with an \sQuote{l} in front of the name
+  return the log of the value.
 
 }
 \references{

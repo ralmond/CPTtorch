@@ -1,5 +1,6 @@
 # !diagnostics suppress=self,private,super
 
+### CPT_Link ----
 
 CPT_Link <- torch::nn_module(
     classname="CPT_Link",
@@ -152,6 +153,8 @@ availableLinks <- function() {
 
 ### It returns a conditional probability table.
 
+### PotentialLink ----
+
 PotentialLink <- torch::nn_module(
     classname="PotentialLink",
     inherit=CPT_Link,
@@ -165,6 +168,8 @@ PotentialLink <- torch::nn_module(
       stype=NULL
     )
 )
+
+### StepProbsLink ----
 
 StepProbsLink <- torch::nn_module(
     classname="StepProbsLink",
@@ -194,16 +199,26 @@ cuts2simplex <- function (et) {
     dim=2)$clip(0,1)
 }
 
+### DifferenceLink ----
+
 DifferenceLink <- torch::nn_module(
     classname="DifferenceLink",
     inherit=CPT_Link,
     scale=NULL,
-    link=cuts2simplex,
+    link=function (et) {
+      if (self$high2low) {
+        torch_fliplr(cuts2simplex(torch_fliplr(et)))
+      } else {
+        cuts2simplex(et)
+      }
+    },
     etWidth=function() {self$K-1},
     private=list(
       stype=NULL
     )
 )
+
+### SoftmaxLink ----
 
 SoftmaxLink <- torch::nn_module(
     classname="SoftmaxLink",
@@ -223,6 +238,7 @@ SoftmaxLink <- torch::nn_module(
     )
 )
 
+### GradedResponseLink ----
 
 GradedResponseLink <- torch::nn_module(
     classname="GradedResponseLink",
@@ -251,6 +267,8 @@ GradedResponseLink <- torch::nn_module(
     )
 )
 
+### PartialCreditLink ----
+
 PartialCreditLink <- torch::nn_module(
     classname="PartialCreditLink",
     inherit=StepProbsLink,
@@ -274,7 +292,7 @@ PartialCreditLink <- torch::nn_module(
     )
 )
 
-
+### GaussianLink ----
 
 GaussianLink <- torch::nn_module(
     classname="GaussianLink",
@@ -321,6 +339,8 @@ GaussianLink <- torch::nn_module(
 
 addcolk <- function (et)
   torch_hstack(list(et,torch_sum(et,2)$neg()$add(1)))
+
+### SlipLink ----
 
 SlipLink <- torch::nn_module(
     classname="SlipLink",

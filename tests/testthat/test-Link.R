@@ -111,21 +111,21 @@ test_that("StepProbsLink",{
 test_that("cuts2simplex",{
   tm <- torch_tensor(matrix(c(.25,.75,.3,.7),2,2,byrow=TRUE))
   expp <- matrix(c(.25,.5,.25,.3,.4,.3),2,3,byrow=TRUE)
-  expect_equal(as.matrix(CPTtorch:::cuts2simplex(tm)),expp,tolerance=.00001)
+  expect_equal(as.matrix(CPTtorch::cuts2simplex(tm)),expp,tolerance=.00001)
 
 })
 
 test_that("DifferenceLink",{
   dl <- getLink("Difference")$new(3)
   expect_equal(dl$etWidth(),2)
-  tm <- torch_tensor(matrix(c(.25,.75,.3,.7),2,2,byrow=TRUE))
+  tm <- torch_tensor(matrix(c(.75,.25,.7,.3),2,2,byrow=TRUE))
   expp <- matrix(c(.25,.5,.25,.3,.4,.3),2,3,byrow=TRUE)
   expect_equal(as.matrix(dl$forward(tm)),expp,tolerance=.00001)
 
   dl2 <- getLink("Difference")$new(2)
   tm2 <- torch_tensor(matrix(c(.75,.7),2,1,byrow=TRUE))
   expp2 <- matrix(c(.75,.25,.7,.3),2,2,byrow=TRUE)
-  expect_equal(as.matrix(dl2$forward(tm2)),expp2[,2:1],tolerance=.00001)
+  expect_equal(as.matrix(dl2$forward(tm2)),expp2,tolerance=.00001)
 
 })
 
