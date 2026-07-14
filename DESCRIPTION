@@ -1,7 +1,7 @@
 Package: CPTtorch
 Type: Package
 Title: Building Conditional Probality Tables with Torch
-Date: 2026/07/13
+Date: 2026/07/14
 Version: 0.1.2
 Author: Russell G. Almond
 Maintainer: Russell Almond <ralmond@fsu.edu>
