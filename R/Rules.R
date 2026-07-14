@@ -488,7 +488,7 @@ NoisyAndRule <- torch::nn_module(
 ### NoisyOrRule ----
 
 NoisyOrRule <- torch::nn_module(
-    classname="NoisyAndRule",
+    classname="NoisyOrRule",
     inherit = RuleBAS,
     bop = "torch_le",
     summary = "torch_prod_1",

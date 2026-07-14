@@ -111,7 +111,7 @@ test_that("StepProbsLink",{
 test_that("cuts2simplex",{
   tm <- torch_tensor(matrix(c(.25,.75,.3,.7),2,2,byrow=TRUE))
   expp <- matrix(c(.25,.5,.25,.3,.4,.3),2,3,byrow=TRUE)
-  expect_equal(as.matrix(CPTtorch:::cuts2simplex(tm)),expp,tolerance=.00001)
+  expect_equal(as.matrix(CPTtorch::cuts2simplex(tm)),expp,tolerance=.00001)
 
 })
 

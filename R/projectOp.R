@@ -3,7 +3,7 @@
 ## fname <- function (fn) gsub('"(.*)"',"\\1",deparse(substitute(fn)))
 
 
-
+### projectOp ----
 setGeneric("projectOp",function(m1,m2,op="+") standardGeneric("projectOp"))
 setOldClass("torch_tensor")
 
@@ -51,18 +51,26 @@ setMethod("projectOp",c("torch_tensor","torch_tensor"),
 
 
 
+### marginalize ----
 
 setGeneric("marginalize",function(pot,dim=1,op="sum")
   StandardGeneric("marginalize"))
 
 setMethod("marginalize","array",function(pot,dim=1,op="sum") {
   odim <- setdiff(1L:length(dim(pot)),dim)
-  apply(pot,odim,op)
+  newdim <- dim(pot)
+  newdim[dim] <- 1
+  result <- apply(pot,odim,op)
+  dim(result) <- newdim
+  result
 })
 
 setMethod("marginalize","torch_tensor",function(pot,dim=1,op="sum") {
   if (is.character(op) && op=="sum") op <- torch_sum
-  do.call(op,list(pot,dim))
+  newdim <- dim(pot)
+  newdim[dim]<- 1
+  result <- do.call(op,list(pot,dim))
+  torch_reshape(result,newdim)
 })
 
 
@@ -70,7 +78,7 @@ setMethod("marginalize","torch_tensor",function(pot,dim=1,op="sum") {
 
 
 ################################################
-## Matrix Multiplication
+### Matrix Multiplication ----
 
 
 genmmttab <- new.env()

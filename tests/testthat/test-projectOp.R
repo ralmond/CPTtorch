@@ -48,27 +48,29 @@ test_that("projectOp ten ten",{
 test_that("marginalize arr",{
   arr <- array((1:24)+.1,c(4,3,2))
   expect_equal(marginalize(arr),
-               matrix(c(sum((1:4)+.1), sum((5:8)+.1), sum((9:12)+.1),
+               array(c(sum((1:4)+.1), sum((5:8)+.1), sum((9:12)+.1),
                         sum((13:16)+.1), sum((17:20)+.1), sum((21:24)+.1)),
-                      3,2))
+                      c(1,3,2)))
   expect_equal(marginalize(arr,2,"max"),
-               matrix(c(9:12,21:24)+.1,4,2))
-  expect_equal(marginalize(arr,c(1,2),"max"),c(12.1,24.1))
+               array(c(9:12,21:24)+.1,c(4,1,2)))
+  expect_equal(marginalize(arr,c(1,2),"max"),
+               array(c(12.1,24.1),c(1,1,2)))
 
 
 })
 
 test_that("marginalize ten",{
   arr <- torch_tensor(array((1:24)+.1,c(4,3,2)))
-  expect_equal(as.matrix(marginalize(arr)),
-               matrix(c(sum((1:4)+.1), sum((5:8)+.1), sum((9:12)+.1),
+  expect_equal(as.array(marginalize(arr)),
+               array(c(sum((1:4)+.1), sum((5:8)+.1), sum((9:12)+.1),
                         sum((13:16)+.1), sum((17:20)+.1), sum((21:24)+.1)),
-                      3,2),
+                      c(1,3,2)),
                tolerance=.00001)
-  expect_equal(as.matrix(marginalize(arr,2,torch_amax)),
-               matrix(c(9:12,21:24)+.1,4,2),
+  expect_equal(as.array(marginalize(arr,2,torch_amax)),
+               array(c(9:12,21:24)+.1,c(4,1,2)),
                tolerance=.00001)
-  expect_equal(as.numeric(marginalize(arr,c(1,2),torch_amax)),c(12.1,24.1),
+  expect_equal(as.array(marginalize(arr,c(1,2),torch_amax)),
+               array(c(12.1,24.1),c(1,1,2)),
                tolerance=.00001)
 
 })

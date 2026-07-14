@@ -263,7 +263,10 @@ fit2table<- function(model,dattab,
     cat("Cycle:",rit,"Deviance:",dev,"\n")
     for (pname in log) {
       print(pname)
-      print(model$params()[[pname]])
+      if (pname=="cpt")
+        print(model$getCPT())
+      else
+        print(model$params()[[pname]])
     }
   }
   while (rit < maxit) {

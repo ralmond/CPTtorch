@@ -31,7 +31,7 @@ torch_simplexify <- function (x,dim=-1L) {
 
 "%//%" <- function (e1,e2) {
   if (is.finite(e2)) e1/e2
-  else (as.numeric(!is.finite(e1)))
+  else (sign(e1)*as.numeric(!is.finite(e1)))
 }
 softmax <- function (x) {
   m <- exp(x)
@@ -122,8 +122,8 @@ getTorchOp <- function (op) {
 sumrootk <- function(x) {
   sum(x)/sqrt(length(x))
 }
-torch_sumrootk <- function(x,dim=-1,keepdim=FALSE,out=NULL) {
-  result <- torch_sum(x,dim,keepdim,out)
+torch_sumrootk <- function(x,dim=-1,keepdim=FALSE) {
+  result <- torch_sum(x,dim,keepdim)
   result$div(sqrt(x$length()/result$length()))
 }
 
@@ -131,15 +131,15 @@ torch_sumrootk <- function(x,dim=-1,keepdim=FALSE,out=NULL) {
 prodq <- function(x) {
   1 - prod(1-x)
 }
-torch_prodq <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
-  qqq <- torch_prod(torch_ones_like(x)$sub(x),dim,keepdim,out)
+torch_prodq <- function(x,dim=-1L,keepdim=FALSE) {
+  qqq <- torch_prod(torch_ones_like(x)$sub(x),dim,keepdim)
   torch_ones_like(qqq)$sub(qqq)
 }
 
 prod_1 <- function(x)
   1 - prod(x)
-torch_prod_1 <- function(x,dim=-1L,keepdim=FALSE,out=NULL) {
-  torch_prod(x,dim,keepdim,out)$neg()$add(torch_tensor(1, device=x$device))
+torch_prod_1 <- function(x,dim=-1L,keepdim=FALSE) {
+  torch_prod(x,dim,keepdim)$neg()$add(torch_tensor(1, device=x$device))
 }
 
 
