@@ -14,8 +14,7 @@ We load the ACED scores and exam design metadata (e.g., Q-matrix) from the [CPTt
 ```{r}
 devtools::load_all("..")
 library(CPTtorch)
-load(system.file('data/ACED.RData',package="CPTtorch"))
-print(TORCH_DEVICE)
+load('~/SIMPL/ACED.RData')
 ```
 
 There are 2 possible scores {incorrect, correct} for all ACED items
@@ -51,9 +50,7 @@ If student $i$ attained the $k^{th}$ lowest score on task $j$, then $E_{ij} = k$
 The matrix `ACED.items` almost matches this format, but not-attempted, incorrect, and correct scores are saved as `NA, 0, 1` and not the desired `NA, 1, 2`.
 Since an incorrect score (stored as 0) corresponds to the 1st outcome state of `scoring_states[[j]]` (and correct, stored as 1, corresponds to the 2nd outcome state) $\forall j \in J$, we define `{r} task_scores`, $E$, as such:
 ```{r}
-task_scores <- ACED.items[,4:66]
-task_scores[] <- lapply(task_scores, function(x) as.integer(x))
-task_scores <- as.matrix(task_scores)+1L
+task_scores <- as.matrix(ACED.items[,4:66]) + 1L
 ```
 
 ### Understanding model functions

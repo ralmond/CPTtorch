@@ -82,7 +82,7 @@ Cognitively_Diagnostic_Model <- nn_module(
 
       self$evidence_models <- lapply(1:self$n_tasks, function(j) CPT_Model$new(
         ruletype, linktype, latent_skill_levels[which(q_matrix[j,])], scoring_states[[j]],
-        guess=guess[j] ,slip=slip[j], high2low=high2low[j])$to(device=device)
+        guess=guess[j] ,slip=slip[j], high2low=high2low[j], device=device)
       )
     },
     forward = function (task_scores) {
