@@ -22,10 +22,10 @@
 CPTtorch_device <- function() {
   td <- getOption("CPTtorch_device")
   if (is.null(td)) {
-    if (cuda_is_available()) td <- torch_device("cuda")
-    else td <- torch_device("cpu")
+    if (cuda_is_available()) td <-"cuda"
+    else td <- "cpu"
     options(CPTtorch_device=td)
   }
-  td
+  torch_device(td)
 }
 

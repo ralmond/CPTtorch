@@ -5,8 +5,8 @@
 
   Torch can run using either the cpu (\code{\link[torch]{torch_device}("cpu")}),
   or if cuda is installed, the gpu (\code{\link[torch]{torch_device}("gpu")}).
-  Which one is used is controlled by \code{\link[base]{getOption}("CPTtorch_device")}.
-  This function is just an alias for that expression.
+  Which one is used is controlled by \code{\link[base]{getOption}("CPTtorch_device")},
+  which should return either \dQuote{gpu} or \dQuote{cpu}.
 
 }
 \usage{
@@ -16,7 +16,8 @@ CPTtorch_device()
 
   If the option is not already set, the default value is set when the function is
   first called.  It calls \code{\link[torch]{cuda_is_available}()} to determine
-  whether to use gpu or cpu.
+  whether to use gpu or cpu.  The option should be set to a string value and the function
+  returns a new \code{torch_device}.
 
 }
 \value{
