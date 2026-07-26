@@ -22,6 +22,13 @@
       ordered from highest to lowest.}
     \item{device}{The \code{\link[torch]{torch_device}} that should be used
       for building tensors.}
+    \item{child}{A character scalar giving the name of the child variable.}
+    \item{marginDims}{After \code{$setProfOrder} has been called, this gives the
+      dimensions that need to be marginalized over to build the contingency table
+      for this distribution.}
+    \item{fullDims}{After \code{$setProfOrder} has been called, this gives the
+      dimensions over the full proficiency model set plus the child variable,
+      with ones for the unused dimensions. }
   }
 
 
@@ -62,28 +69,30 @@
 \section{Methods}{
 
   \describe{
-    \item{initialzie}{\code{signature(\var{ruletype}:char,
+    \item{initialzie}{\code{(\var{ruletype}:char,
 	    \var{linktype}:char,
 	    \var{parents}=list(),\var{states}=character(),
       \var{QQ}=TRUE),\var{guess}=NA,\var{slip}=NA,\var{high2low}=TRUE,
       \var{device}=CPTtorch_device()}.  Creates a new CPT model.  See Construtor
       section below.
     }
-    \item{forward}{\code{signature()}. Calculates the CPT from the
+    \item{forward}{\code{()}. Calculates the CPT from the
       current parameters.  Calling this function forces a recalculation.}
-    \item{lscore}{\code{signature(datatab:tensor)}. Calculates
+    \item{lscore}{\code{(datatab:tensor)}. Calculates
       the log probability of the data given in \code{datatab}. See
       calculating the score below. }
-    \item{getCPT}{\code{signature()}. Gets the CPT, using a cached value
+    \item{getCPT}{\code{()}. Gets the CPT, using a cached value
       if possible.  This is a \eqn{J+1} dimensional tensor where \eqn{J}
       is the number of parents.}
-    \item{getCPF}{\code{signature()}. Gets the conditional proability
+    \item{getCPF}{\code{()}. Gets the conditional proability
       frame, which is the CPT converted into a data frame with addition
       information about the parent configurations.}
-    \item{getETFrame}{\code{signature()}. Get the effective theta table
+    \item{getETFrame}{\code{()}. Get the effective theta table
       from the \code{$rule} and displays it as a data frame with
       additional information about the parent states.}
-
+    \item{setProfOrder}{\code{(proficiencies:character)}.  Sets the cannonical
+      order for the proficiency variables, and calculates the needed values
+      for \code{$marginDims} and \code{$fullDims}.}
   }
 }
 \section{Parents and Parent Value Matrix}{
