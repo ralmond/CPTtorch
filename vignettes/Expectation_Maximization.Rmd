@@ -86,7 +86,7 @@ Now we set `torch`'s train flag.
 aced_model$train()
 ```
 
-We can use the `r fit_with_EM()` function to train our model.
+We can use the `fit_with_EM()` function to train our model.
 ```{r}
 start.time <- Sys.time()
 fit_with_EM(aced_model, task_scores, maxit=200L, tolerance=0.01)
@@ -94,10 +94,12 @@ end.time <- Sys.time()
 print(paste0('Time taken for training (sec) ', difftime(end.time, start.time, units='secs')))
 ```
 
-To save our trained model, we can call `r writeCDM()` to get a JSON
-representation and call `r readCDM()` to read it back as a `r Cognitively_Diagnostic_Model` object.
+To save our trained model, we can call `writeCDM()` to get a JSON
+representation and call `readCDM()` to read it back as a `Cognitively_Diagnostic_Model` object.
 ```{r}
 aced_model_JSON_ser <- writeCDM(aced_model)
-cat("Here is some text", file = "my_data.txt")
-aced_model <- readCDM(aced_model)
+cat(aced_model_JSON_ser, file = "trained_aced_model.json")
+
+aced_model_JSON_ser <- paste(readLines("trained_aced_model.json", warn=F), collapse = "\n")
+aced_model_RW <- readCDM(aced_model_JSON_ser)
 ```

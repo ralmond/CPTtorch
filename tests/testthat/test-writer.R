@@ -26,7 +26,7 @@ setup_sample_test_responses <- function(probs = c(0.25, 0.25, 0.25, 0.25),
   return(mat)
 }
 
-test_that("Recovery CPT Compensatory/PC", {
+test_that("Recover CPT Compensatory/PC", {
   mod0 <- CPT_Model$new("Compensatory","PartialCredit",
                         list('Par1'=c('P1_low', 'P1_hi'), 'Par2'=c('P2_low', 'P2_hi')),
                         c("A","B","C"))
@@ -39,7 +39,7 @@ test_that("Recovery CPT Compensatory/PC", {
 })
 
 
-test_that("Recovery CPT Compensatory/PC Different Devices", {
+test_that("Recover CPT Compensatory/PC Different Devices", {
   mod0 <- CPT_Model$new("Compensatory","PartialCredit",
                         list('Par1'=c('P1_low', 'P1_hi'), 'Par2'=c('P2_low', 'P2_hi')),
                         c("A","B","C"))
@@ -56,7 +56,7 @@ test_that("Recovery CPT Compensatory/PC Different Devices", {
 })
 
 
-test_that("Recovery Center/Normal parents", {
+test_that("Recover Center/Normal parents", {
   mod0 <- CPT_Model$new("Center","Normal",list(),c("A","B","C"))
   mod0$linkScale <- 1
   mod0$penalties <- list("bVec"=1,"sVec"=1)
@@ -69,7 +69,7 @@ test_that("Recovery Center/Normal parents", {
 })
 
 
-test_that("Recovery CPT Compensatory/PC after Training", {
+test_that("Recover CPT Compensatory/PC after Training", {
   mod0 <- CPT_Model$new("Compensatory","PartialCredit",
                         list('Par1'=c('P1_low', 'P1_hi'), 'Par2'=c('P2_low', 'P2_hi')),
                         c("A","B","C"))
@@ -88,14 +88,14 @@ test_that("Recovery CPT Compensatory/PC after Training", {
 
   expect_eqten(mod0$getCPT(),cpt1,tol=3e-3)
 
-  mod0ser <- writeCPT(mod0)
-  modRW <- readCPT(mod0ser)
+  mod0Ser <- writeCPT(mod0)
+  modRW <- readCPT(mod0Ser)
 
   expect_eqten(modRW$getCPT(),cpt1,tol=3e-3)
 })
 
 
-test_that("Recovery CPT Center/Normal after training", {
+test_that("Recover CPT Center/Normal after training", {
   mod0 <- CPT_Model$new("Center","Normal",list(),c("A","B","C"))
   mod0$linkScale <- 1
   mod0$penalties <- list("bVec"=1,"sVec"=1)
@@ -110,14 +110,38 @@ test_that("Recovery CPT Center/Normal after training", {
   conv <- fit2table(mod0,dattab,maxit=200L)
   if (!conv) warning("Model fitting did not converge")
 
-  mod0ser <- writeCPT(mod0)
-  modRW <- readCPT(mod0ser)
+  mod0Ser <- writeCPT(mod0)
+  modRW <- readCPT(mod0Ser)
 
   expect_eqten(modRW$getCPT(),cpt1,tol=3e-3)
 })
 
 
-test_that("Recovery CDM", {
+test_that("Recover CPT after Training, saving to .json File", {
+  mod0 <- CPT_Model$new("Center","Normal",list(),c("A","B","C"))
+  mod0$linkScale <- 1
+  mod0$penalties <- list("bVec"=1,"sVec"=1)
+  mod1 <- CPT_Model$new("Center","Normal",list(),c("A","B","C"))
+  mod1$linkScale <- .5
+  mod1$bMat <- matrix(.5,1,1)
+  cpt1 <- mod1$getCPT()
+  dattab <- torch_mul(cpt1,1000)
+
+
+  #conv <- fit2table(mod0,dattab,log=c("bVec","sVec","cpt"),maxit=200L)
+  conv <- fit2table(mod0,dattab,maxit=200L)
+  if (!conv) warning("Model fitting did not converge")
+
+  mod0Ser <- writeCPT(mod0)
+  cat(mod0Ser, file = "trained_CPT_model.json")
+  mod0SerFileW <- paste(readLines("trained_CPT_model.json", warn=F), collapse = "\n")
+  modRW <- readCPT(mod0SerFileW)
+
+  expect_eqten(modRW$getCPT(),cpt1,tol=3e-3)
+})
+
+
+test_that("Recover CDM", {
   # Setup a simple quiz with two tasks designed to test two latent skills
   qmat <- matrix(c(T,T,F,T), nrow=2)
   colnames(qmat) <- c("Skill 1", "General Skill")
@@ -125,7 +149,6 @@ test_that("Recovery CDM", {
 
   scoring_states <- lapply(rownames(qmat), function(name) paste0(name, "_", c("incorr", "corr")))
   latent_skill_levels <- lapply(colnames(qmat), function(s) paste0(s, "_", 1:2))
-
 
   mod0 <- Cognitively_Diagnostic_Model(
     "Compensatory", "PartialCredit", qmat, latent_skill_levels, scoring_states
@@ -150,7 +173,38 @@ test_that("Recovery CDM", {
   }
 })
 
-test_that("Recovery CDM Train", {
+
+test_that("Recover CDM .json File", {
+  qmat <- matrix(c(T,T,F,T), nrow=2)
+  colnames(qmat) <- c("Skill 1", "General Skill")
+  row.names(qmat) <- c("Sk1 spfc Task", "Gen Task")
+  scoring_states <- lapply(rownames(qmat), function(name) paste0(name, "_", c("incorr", "corr")))
+  latent_skill_levels <- lapply(colnames(qmat), function(s) paste0(s, "_", 1:2))
+  task_scores <- setup_sample_test_responses(c(0.37, 0.33, 0.03, 0.27))
+
+  mod0 <- Cognitively_Diagnostic_Model(
+    "Compensatory", "PartialCredit", qmat, latent_skill_levels, scoring_states
+  )
+
+  mod0Ser <- writeCDM(mod0)
+  cat(mod0Ser, file = "CDM_model.json")
+  mod0SerFileW <- paste(readLines("CDM_model.json", warn=F), collapse = "\n")
+
+  modRW <- readCDM(mod0SerFileW)
+
+  exp_CPTs <- mod0$get_expected_contingency_tables(task_scores)
+  exp_CPTs_RW <- modRW$get_expected_contingency_tables(task_scores)
+
+  expect_eqten(exp_CPTs$Phi_I0, exp_CPTs_RW$Phi_I0)
+  expect_equal(length(exp_CPTs$Phi_Ijs), 2)
+  expect_equal(length(exp_CPTs$Phi_Ijs), length(exp_CPTs_RW$Phi_Ijs))
+  for (i in length(exp_CPTs$Phi_Ijs)) {
+    expect_eqten(exp_CPTs$Phi_Ijs[[i]], exp_CPTs_RW$Phi_Ijs[[i]])
+  }
+})
+
+
+test_that("Recover CDM Train", {
   # Setup a simple quiz with two tasks designed to test two latent skills
   qmat <- matrix(c(T,T,F,T), nrow=2)
   colnames(qmat) <- c("Skill 1", "General Skill")
@@ -186,7 +240,7 @@ test_that("Recovery CDM Train", {
 })
 
 
-test_that("Recovery CDM Train: Different Devices", {
+test_that("Recover CDM Train: Different Devices", {
   qmat <- matrix(c(T,T,F,T), nrow=2)
   colnames(qmat) <- c("Skill 1", "General Skill")
   row.names(qmat) <- c("Sk1 spfc Task", "Gen Task")
