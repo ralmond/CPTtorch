@@ -94,34 +94,10 @@ end.time <- Sys.time()
 print(paste0('Time taken for training (sec) ', difftime(end.time, start.time, units='secs')))
 ```
 
-To save our trained model, we can call `r torch_save()`:
-\textcolor{red}{Still Under Development: why does `torch_save(CDM_model)` not work}
+To save our trained model, we can call `r writeCDM()` to get a JSON
+representation and call `r readCDM()` to read it back as a `r Cognitively_Diagnostic_Model` object.
 ```{r}
-# torch_save(aced_model$state_dict(), "trained_aced_model.pt")
-
-A_mat = matrix(NA, aced_model$n_tasks, length(aced_model$latent_skill_levels))
-rownames(A_mat) <- rownames(aced_model$q_matrix)
-colnames(A_mat) <- colnames(aced_model$q_matrix)
-B_vec = rep(0, aced_model$n_tasks)
-names(B_vec) <- rownames(aced_model$q_matrix)
-
-for (i in 1:length(aced_model$evidence_models)) {
-  A_mat[i, which(aced_model$q_matrix[i, ])] <- as_array(aced_model$evidence_models[[i]]$aMat)
-  B_vec[i] <- aced_model$evidence_models[[i]]$bMat$item()
-}
-
-write.table(cbind(A_mat, B_vec), "../data/CPTtorch_trained_params.txt")
-```
-
-## Validating our Model
-```{r}
-for (i in 1:length(aced_model$evidence_models)) {
-  print(c("Model", i))
-  print('  A')
-  print(aced_model$evidence_models[[i]]$aMat)
-  print('  B')
-  print(aced_model$evidence_models[[i]]$bMat)
-  print('')
-  break
-}
+aced_model_JSON_ser <- writeCDM(aced_model)
+cat("Here is some text", file = "my_data.txt")
+aced_model <- readCDM(aced_model)
 ```

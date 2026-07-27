@@ -17,12 +17,12 @@ writeCPT <- function(cpt) {
       bVec=NULL
     )
   )
-  if (!is.null(cpt$link$sVec))
-    jlist$link$sVec <- jsonlite::base64_enc(torch_serialize(cpt$link$sVec))
-  if (!is.null(cpt$rule$aVec))
-    jlist$rule$aVec <- jsonlite::base64_enc(torch_serialize(cpt$rule$aVec))
+  if (!is.null(cpt$link$linkScale))
+    jlist$link$linkScale <- jsonlite::base64_enc(torch_serialize(cpt$link$linkScale))
+  if (!is.null(cpt$rule$aMat))
+    jlist$rule$aMat <- jsonlite::base64_enc(torch_serialize(cpt$rule$aMat))
   if (!is.null(cpt$rule$bVec))
-    jlist$rule$bVec <- jsonlite::base64_enc(torch_serialize(cpt$rule$bVec))
+    jlist$rule$bMat <- jsonlite::base64_enc(torch_serialize(cpt$rule$bMat))
   jsonlite::toJSON(jlist)
 }
 
@@ -48,19 +48,19 @@ readCPT <- function (serial,device=CPTtorch_device()) {
                        jlist$parentNames,unlist(jlist$stateNames),jlist$QQ,
                        jlist$guess[[1]],jlist$slip[[1]],jlist$high2low[[1]],
                        device=device)
-  jlist$rule$aVec <- unlist(jlist$rule$aVec)
-  if (!is.null(jlist$rule$aVec)) {
-    cpt$rule$aVec <- torch_load(jsonlite::base64_dec(jlist$rule$aVec),
+  jlist$rule$aMat <- unlist(jlist$rule$aMat)
+  if (!is.null(jlist$rule$aMat)) {
+    cpt$rule$aMat <- torch_load(jsonlite::base64_dec(jlist$rule$aMat),
                                 device=device)
   }
-  jlist$rule$bVec <- unlist(jlist$rule$bVec)
-  if (!is.null(jlist$rule$bVec)) {
-    cpt$rule$bVec <- torch_load(jsonlite::base64_dec(jlist$rule$bVec),
+  jlist$rule$bMat <- unlist(jlist$rule$bMat)
+  if (!is.null(jlist$rule$bMat)) {
+    cpt$rule$bMat <- torch_load(jsonlite::base64_dec(jlist$rule$bMat),
                                 device=device)
   }
-  jlist$link$sVec <- unlist(jlist$link$sVec)
-  if (!is.null(jlist$link$sVec)) {
-    cpt$link$sVec <- torch_load(jsonlite::base64_dec(jlist$link$sVec),
+  jlist$link$linkScale <- unlist(jlist$link$linkScale)
+  if (!is.null(jlist$link$linkScale)) {
+    cpt$link$linkScale <- torch_load(jsonlite::base64_dec(jlist$link$linkScale),
                                 device=device)
   }
   cpt
@@ -79,23 +79,20 @@ writeCDM <- function(cdm) {
 }
 
 readCDM <- function (serial,device=CPTtorch_device()) {
-  # Goals:
-  # 0. build all CPTs
-  # 1. call CDM constructor
-  # 2. update state
+  # Three stages:
+  # 1. build all CPTs
+  # 2. call CDM constructor
+  # 3. update CDM state
 
-  # CDM(ruletype,linktype,q_matrix,latent_skill_levels=list(),scoring_states=list(),
-  #          guess=NA,slip=NA,high2low=FALSE,device=CPTtorch::CPTtorch_device())
-  # of these params, q_matrix,latent_skill_levels,scoring_states are used for non-CPT-only ops
   jlist <- jsonlite::fromJSON(serial,FALSE)
   if (jlist$classname != "Cognitively_Diagnostic_Model") {
     stop("Expected Cognitively_Diagnostic_Model JSON")
   }
 
-  # 0. build all CPTs
+  # 1. build all CPTs
   CPTs <- lapply(unlist(jlist$CPTs), function(x) readCPT(x, device = device))
 
-  # 1. call CDM constructor
+  # 2. call CDM constructor
   #   make guess, slip, high2low vectors
   guesses <- sapply(CPTs, function(x) x$link$guess)
   slips <- sapply(CPTs, function(x) x$link$slip)
@@ -120,6 +117,12 @@ readCDM <- function (serial,device=CPTtorch_device()) {
     ruleType, linkType, jlist$q_matrix, latent_skill_levels, scoring_states,
     guesses, slips, high2lows, device = device
   )
+
+  # 3. update CDM state
+  cdm$proficiency_potential <- torch_load(jsonlite::base64_dec(jlist$proficiency_potential[[1]]),
+                                          device=device)
+  cdm$proficiency_potential <- torch_tensor(cdm$proficiency_potential, requires_grad = F)
+  cdm$evidence_models <- CPTs
 
   cdm
 }
