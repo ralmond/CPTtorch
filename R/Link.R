@@ -357,12 +357,19 @@ SlipLink <- torch::nn_module(
 )
 
 setLink("Potential",PotentialLink)
+setLink("PotentialLink",PotentialLink)
 setLink("StepProbs",StepProbsLink)
+setLink("StepProbsLink",StepProbsLink)
 setLink("Difference",DifferenceLink)
+setLink("DifferenceLink",DifferenceLink)
 setLink("GradedResponse",GradedResponseLink)
+setLink("GradedResponseLink",GradedResponseLink)
 setLink("PartialCredit",PartialCreditLink)
+setLink("PartialCreditLink",PartialCreditLink)
 setLink("Normal",GaussianLink)
+setLink("NormalLink",GaussianLink)
 setLink("Gaussian",GaussianLink)
+setLink("GaussianLink",GaussianLink)
 setLink("Softmax",SoftmaxLink)
 
 
