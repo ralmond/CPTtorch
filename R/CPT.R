@@ -39,6 +39,9 @@ CPT_Model <- nn_module(
     oparams=list(lr=.1),
     lossfn=NULL,
     device=NULL,
+    child=character(),
+    marginDims=NULL,
+    fullDims=NULL,
     initialize = function(ruletype,linktype,parents=list(),states=character(),
                           QQ=TRUE,guess=NA,slip=NA,
                           high2low=FALSE,device=CPTtorch::CPTtorch_device()) {
@@ -139,6 +142,19 @@ CPT_Model <- nn_module(
       }
       self$cache <- NULL
       self$deviance(datatab)
+    },
+    setProfOrder = function(proficiencies) {
+      if (!self$child %in% proficiencies) {
+        proficiencies <- c(proficiencies,self$child)
+      }
+      frame <- c(self$parentNames,self$child)
+      wvars <- match(frame,proficiencies)
+      if (!all(c(wvars[-1],Inf)-wvars>0)) {
+        warning("Frame (",paste(frame,sep=", "),") is not in canonical order.")
+      }
+      self$fullDims <- rep(1,length(proficiencies))
+      self$fullDims[wvars] <- self$shp
+      self$marginDims <- (1:length(proficiencies))[-wvars]
     },
     private=list(
         parents=list(),

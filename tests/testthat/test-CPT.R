@@ -245,6 +245,19 @@ test_that("CPT high2low", {
 
 })
 
+test_that("CPT setProfOrder", {
+  cpt3 <- CPT_Model$new("Compensatory","PartialCredit",
+                        list(A=c("A1","A2","A3"),C=c("C1","C2","C3")),
+                        c("D1","D2","D3"))
+  cpt3$child <- "D"
+  cpt3$setProfOrder(c("A","B","C","D","E"))
+  expect_equal(cpt3$marginDims,c(2,5))
+  expect_equal(cpt3$fullDims,c(3,1,3,3,1))
 
+  cpt3$child <- "Y"
+  cpt3$setProfOrder(c("A","B","C","D","E"))
+  expect_equal(cpt3$marginDims,c(2,4,5))
+  expect_equal(cpt3$fullDims,c(3,1,3,1,1,3))
 
+})
 
