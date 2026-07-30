@@ -1,0 +1,80 @@
+---
+title: "ACED test"
+format: html
+---
+
+## Load Models & Data
+
+```{r}
+library(CPTtorch)
+library(ACED)
+library(torch)
+data(ACED)
+data(FullACED)
+```
+
+## Build Proficiency Model
+
+Set a canonical order for the proficiency variables.
+
+```{r}
+canonicalOrder <- FullACED.omega$Node
+profStates <- c("High","Med","Low")
+obsStates <- c("Correct","Incorrect")
+```
+
+Generate CPTs for the proficiency models.
+I will use a shortcut here as I know that all models are Compensatory-Normal with either 0 or 1 parent.
+Moreover, alpha = 1 for all of them.
+
+```{r}
+profFactors <- lapply(1:nrow(FullACED.omega),\(prof) {
+  child <- FullACED.omega$Node[prof]
+  parents <- canonicalOrder[sapply(FullACED.omega[prof,canonicalOrder],
+                                  isTRUE)]
+  tvals <- rep(list(profStates),length(parents))
+  if (length(tvals) > 1L) names(tvals) <- parents
+  cpt <- CPT_Model$new("CompensatoryGR","Normal",tvals,profStates)
+  cpt$child <- child
+  if (length(parents) > 0L) {
+    cpt$aMat <- torch_ones(1,1,device=CPTtorch_device())
+  }
+  cpt$bMat <- torch_tensor(matrix(FullACED.omega$B[prof],1,1),
+                           device=CPTtorch_device())
+  cpt$linkScale <- torch_tensor(sqrt(1-FullACED.omega$R2[prof]^2),
+                                device=CPTtorch_device())
+  cpt$setProfOrder(canonicalOrder)
+  cpt
+})
+names(profFactors) <- canonicalOrder
+```
+
+## Build Evidence Models
+
+We need to use `task2em` to decode which EM goes with which task.
+
+
+```{r}
+evidenceModels <- lapply(1:nrow(FullACED.task2em), \(itask) {
+  task <- FullACED.task2em$Task[itask]
+  iem <- which(FullACED.task2em$EM[itask],FullACED.QQ$Model)
+  parents <- canonicalOrder[sapply(FullACED.QQ[prof,canonicalOrder],
+                                  isTRUE)]
+  tvals <- rep(list(profStates),length(parents))
+  if (length(tvals) > 1L) names(tvals) <- parents
+  cpt <- CPT_Model$new("CompensatoryGR","GradedResponse",tvals,obsStates)
+  cpt$child <- task
+  if (length(parents) > 0L) {
+    cpt$aMat <- torch_tensor(FullACED.QQ[iem,paste0("A.",parents)],
+                             device=CPTtorch_device())
+  }
+  cpt$bMat <- torch_tensor(matrix(FullACED.QQ$B[iem],1,1),
+                           device=CPTtorch_device())
+
+  cpt$setProfOrder(canonicalOrder)
+  cpt
+  
+})
+names(evidenceModels) <- FullACED.task2em$Task
+```
+
