@@ -250,17 +250,18 @@ GradedResponseLink <- torch::nn_module(
     scale=NULL,
     etWidth=function() {self$K-1},
     link=function(et) {
-      # Couple sigmoid sign to self$high2low so cuts2simplex never sees a
-      # decreasing-sigmoid input (which cummax would flatten, zeroing
-      # middle categories). With CompensatoryRule's et = a*theta - b and
-      # ascending b values, et columns come out decreasing across cuts;
-      # under default h2l=FALSE we need sigmoid(-D*et) to recover an
-      # increasing sequence. Under h2l=TRUE the rule pre-flips bMat, so
-      # et arrives in the opposite order and the positive sign is correct.
-      # D returns to a pure positive scale (1.7 default).
-      et   <- as_torch_tensor(et, device=self$device)
-      sign <- if (isTRUE(self$high2low)) 1 else -1
-      cuts2simplex(nnf_sigmoid(et$mul(sign * self$D)))
+      # `cuts2simplex` needs an INCREASING sequence across cuts; anything else
+      # is flattened by its `cummax`, zeroing the middle categories. With
+      # et = a*theta - b, et decreases across cuts, so the negative sign
+      # recovers an increasing sequence. D stays a pure positive scale (1.7).
+      #
+      # The sign does NOT depend on high2low. `checkParam.incrK` rejects a
+      # non-decreasing bMat under the flag, so bMat is always stored in flag
+      # order, and the rule's own `torch_flipud` then restores a single
+      # canonical across-cut order. et therefore reaches this link the same way
+      # in both directions and the link needs no knowledge of the flag.
+      et <- as_torch_tensor(et, device=self$device)
+      cuts2simplex(nnf_sigmoid(et$mul(-self$D)))
     },
     private=list(
       stype=NULL
