@@ -61,6 +61,7 @@ CPT_Model <- nn_module(
     },
     forward = function () {
       private$cpt <- self$link$forward(self$rule$forward())
+      private$chunks <- NULL
       private$cpt
     },
     train = function(mode=TRUE) {
@@ -149,18 +150,30 @@ CPT_Model <- nn_module(
       }
       frame <- c(self$parentNames,self$child)
       wvars <- match(frame,proficiencies)
-      if (!all(c(wvars[-1],Inf)-wvars>0)) {
+      if (any(is.na(wvars))) {
+        stop("Unrecognized variable",frame[which(is.na(wvars))])
+      }
+      if (!all(c(wvars[-1],Inf)>wvars)) {
         warning("Frame (",paste(frame,sep=", "),") is not in canonical order.")
       }
       self$fullDims <- rep(1,length(proficiencies))
       self$fullDims[wvars] <- self$shp
       self$marginDims <- (1:length(proficiencies))[-wvars]
     },
+    getChunks=function() {
+      if (is.null(private$chunks)) {
+        fullDims <- self$fullDims
+        private$chunks <- self$getCPT()$reshape(self$fullDims)$
+          chunk(fullDims[length(fullDims)],length(fullDims))
+      }
+      private$chunks
+    },
     private=list(
         parents=list(),
         states=character(),
         shape=c(1L,1L),
         cpt=NULL,
+        chunks=NULL,
         pbias=list(aVec=NULL,bVec=NULL,sVec=NULL,
                      gP=NULL,sP=NULL)
     ),
@@ -169,18 +182,21 @@ CPT_Model <- nn_module(
           if (missing(value)) return(self$rule$aMat)
           self$rule$aMat <- value
           private$cpt <- NULL
+          private$chunks <- NULL
           invisible(self)
         },
         bMat = function (value) {
           if (missing(value)) return(self$rule$bMat)
           self$rule$bMat <- value
           private$cpt <- NULL
+          private$chunks <- NULL
           invisible(self)
         },
         linkScale = function(value) {
           if (missing(value)) return (self$link$linkScale)
           self$link$linkScale <- value
           private$cpt <- NULL
+          private$chunks <- NULL
           invisible(self)
         },
         slip = function(value) {
@@ -191,6 +207,7 @@ CPT_Model <- nn_module(
           }
           self$link$slip <- value
           private$cpt <- NULL
+          private$chunks <- NULL
           invisible(self)
         },
         guess = function(value) {
@@ -201,6 +218,7 @@ CPT_Model <- nn_module(
           }
           self$link$guess <- value
           private$cpt <- NULL
+          private$chunks <- NULL
           invisible(self)
         },
         parentVals = function (value) {
@@ -212,6 +230,7 @@ CPT_Model <- nn_module(
           self$lossfn <- NULL
           self$optimizer <- NULL
           private$cpt <- NULL
+          private$chunks <- NULL
           invisible(self)
         },
         parentNames = function () {
@@ -235,6 +254,7 @@ CPT_Model <- nn_module(
               self$rule$setDim(K=self$link$etWidth())
           }
           private$cpt <- NULL
+          private$chunks <- NULL
           invisible(self)
         },
         shp = function() {
@@ -270,8 +290,18 @@ CPT_Model <- nn_module(
 )
 
 fit2table<- function(model,dattab,
-                     maxit=100L,tolerance=.0001,
-                     stepit=1L,log=NULL) {
+                     options=list(
+                       mit=100L,tolerance=.0001,
+                       stepit=1L,log=NULL)) {
+  ## Decode Options
+  mit <- options$mit
+  if (!is.numeric(mit)) mit <- 100L
+  stepit <- options$stepit
+  if (!is.numeric(stepit)) stepit <- 1L
+  tolerance <- options$tolerance
+  if (!is.numeric(tolerance)) tolerance <- .0001
+  log <- options$log
+
   rit <- 0L
   model$buildOptimizer()
   dev <- as.numeric(model$deviance(dattab))
@@ -285,7 +315,7 @@ fit2table<- function(model,dattab,
         print(model$params()[[pname]])
     }
   }
-  while (rit < maxit) {
+  while (rit < mit) {
     olddev <- dev
     dev <- as.numeric(model$step(dattab,stepit))
     rit <- rit+stepit
@@ -301,6 +331,6 @@ fit2table<- function(model,dattab,
     }
     if (abs(olddev-dev) < tolerance) break
   }
-  return (rit < maxit)
+  return (rit < mit)
 }
 

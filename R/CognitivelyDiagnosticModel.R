@@ -2,22 +2,22 @@
 # library(future.apply)
 # plan(multisession, workers = parallel::detectCores() - 2)
 
-normalize_tensor <- function(t) {
-  t / torch_sum(t)
-}
+#normalize_tensor <- function(t) {
+#  t / torch_sum(t)
+#}
 
-deviance_loss_T <- function(Phi_I, cpt, ccbias=0) {
-  Phi_tilde <- Phi_I$add(cpt, alpha=ccbias)
-  # return perplexity (mean log-likelihood) by dividing by Phi_I$sum() by the
-  #   number of effective students (more "students" are added to Phi_0 due to bin_eps)
-  cpt$log()$mul(Phi_tilde)$sum()$mul(-2)$div(Phi_I$sum())
-}
+#deviance_loss_T <- function(Phi_I, cpt, ccbias=0) {
+#  Phi_tilde <- Phi_I$add(cpt, alpha=ccbias)
+#  # return perplexity (mean log-likelihood) by dividing by Phi_I$sum() by the
+#  #   number of effective students (more "students" are added to Phi_0 due to bin_eps)
+#  cpt$log()$mul(Phi_tilde)$sum()$mul(-2)$div(Phi_I$sum())
+#}
 
 cdm_loss_fun <- function(phi_0, Phi_I0, phi_js, Phi_Ijs, ccbias) {
-  loss <- deviance_loss_T(Phi_I0, phi_0, ccbias)
+  loss <- deviance_loss(Phi_I0, phi_0, ccbias)
 
   for (j in seq_along(Phi_Ijs))
-    loss <- loss$add(deviance_loss_T(Phi_Ijs[[j]], phi_js[[j]], ccbias))
+    loss <- loss$add(deviance_loss(Phi_Ijs[[j]], phi_js[[j]], ccbias))
 
   loss
 }

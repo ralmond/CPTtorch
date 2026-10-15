@@ -12,10 +12,9 @@ ACED [Shute. Hansen, and Almond 2008](https://doi.org/10.3233/IRG-2008-18(4)02) 
 We load the ACED scores and exam design metadata (e.g., Q-matrix) from the [CPTtools data repository](https://github.com/ralmond/CPTtools/tree/master/data/).
 
 ```{r}
-devtools::load_all("..")
 library(CPTtorch)
-load(system.file('data/ACED.RData',package="CPTtorch"))
-print(TORCH_DEVICE)
+library(ACED)
+data(ACED)
 ```
 
 There are 2 possible scores {incorrect, correct} for all ACED items

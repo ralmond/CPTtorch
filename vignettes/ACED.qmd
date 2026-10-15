@@ -3,12 +3,16 @@ title: "ACED test"
 format: html
 ---
 
+# Load initial Models
+
 ## Load Models & Data
 
 ```{r}
 library(CPTtorch)
 library(ACED)
 library(torch)
+library(parallel)
+library(redux)
 data(ACED)
 data(FullACED)
 ```
@@ -27,19 +31,33 @@ Generate CPTs for the proficiency models.
 I will use a shortcut here as I know that all models are Compensatory-Normal with either 0 or 1 parent.
 Moreover, alpha = 1 for all of them.
 
+Data that needs to be passed to the sub-processes
+
+* DATA -- The response data
+* QQ -- The Q-matrix
+* OMEGA -- The Omega Matrix
+* FACTORS -- The list of proficiency factors
+* EMS -- The list of evidence models
+* STATLIST -- The list of reporting statistics
+
 ```{r}
 profFactors <- lapply(1:nrow(FullACED.omega),\(prof) {
   child <- FullACED.omega$Node[prof]
+  print(child)
   parents <- canonicalOrder[sapply(FullACED.omega[prof,canonicalOrder],
                                   isTRUE)]
   tvals <- rep(list(profStates),length(parents))
-  if (length(tvals) > 1L) names(tvals) <- parents
-  cpt <- CPT_Model$new("CompensatoryGR","Normal",tvals,profStates)
+  if (length(tvals) > 0L) {
+    names(tvals) <- parents
+    cpt <- CPT_Model$new("CompensatoryGR","Normal",tvals,profStates)
+  } else {
+    cpt <- CPT_Model$new("Center","Normal",tvals,profStates)
+  }
   cpt$child <- child
   if (length(parents) > 0L) {
     cpt$aMat <- torch_ones(1,1,device=CPTtorch_device())
   }
-  cpt$bMat <- torch_tensor(matrix(FullACED.omega$B[prof],1,1),
+  cpt$bMat <- torch_tensor(matrix(FullACED.omega$Intercept[prof],1,1),
                            device=CPTtorch_device())
   cpt$linkScale <- torch_tensor(sqrt(1-FullACED.omega$R2[prof]^2),
                                 device=CPTtorch_device())
@@ -47,7 +65,20 @@ profFactors <- lapply(1:nrow(FullACED.omega),\(prof) {
   cpt
 })
 names(profFactors) <- canonicalOrder
+FACTORS <- profFactors
 ```
+
+Build up an omega matrix
+
+```{r}
+omega <- as.matrix(FullACED.omega[,canonicalOrder])
+row.names(omega) <- canonicalOrder
+diag(omega) <- TRUE
+OMEGA<-omega
+diag(omega)
+```
+
+
 
 ## Build Evidence Models
 
@@ -57,16 +88,18 @@ We need to use `task2em` to decode which EM goes with which task.
 ```{r}
 evidenceModels <- lapply(1:nrow(FullACED.task2em), \(itask) {
   task <- FullACED.task2em$Task[itask]
-  iem <- which(FullACED.task2em$EM[itask],FullACED.QQ$Model)
-  parents <- canonicalOrder[sapply(FullACED.QQ[prof,canonicalOrder],
+  print(task)
+  iem <- match(FullACED.task2em$EM[itask],FullACED.QQ$Model)
+  parents <- canonicalOrder[sapply(FullACED.QQ[iem,canonicalOrder],
                                   isTRUE)]
   tvals <- rep(list(profStates),length(parents))
-  if (length(tvals) > 1L) names(tvals) <- parents
+  if (length(tvals) > 0L) names(tvals) <- parents
   cpt <- CPT_Model$new("CompensatoryGR","GradedResponse",tvals,obsStates)
   cpt$child <- task
   if (length(parents) > 0L) {
-    cpt$aMat <- torch_tensor(FullACED.QQ[iem,paste0("A.",parents)],
-                             device=CPTtorch_device())
+    aa <- matrix(as.numeric(FullACED.QQ[iem,paste0("A.",parents)]),nrow=1)
+   ## print(aa)
+    cpt$aMat <- torch_tensor(aa, device=CPTtorch_device())
   }
   cpt$bMat <- torch_tensor(matrix(FullACED.QQ$B[iem],1,1),
                            device=CPTtorch_device())
@@ -76,5 +109,139 @@ evidenceModels <- lapply(1:nrow(FullACED.task2em), \(itask) {
   
 })
 names(evidenceModels) <- FullACED.task2em$Task
+EMS <- evidenceModels
 ```
+
+```{r}
+longQ <- sapply(1:nrow(FullACED.task2em), \(itask) {
+  iem <- match(FullACED.task2em$EM[itask],FullACED.QQ$Model)
+  sapply(FullACED.QQ[iem,canonicalOrder],isTRUE)
+}) |> t()
+dim(longQ)
+rownames(longQ) <- FullACED.task2em$Task
+QQ <- longQ
+```
+
+
+
+## Build Statistics
+
+```{r}
+nodes <- lapply(unique(FullACED.stats$Node),\(n) {
+  print(n)
+  node <- Node$new(n,profStates)
+  node
+})
+names(nodes) <- unique(FullACED.stats$Node)
+stats <- lapply(1:nrow(FullACED.stats),\(irow) {
+ stat <- Statistic$new(FullACED.stats$Name[irow],
+                 sub("Pnode","",FullACED.stats$Fun[irow]),
+                  nodes[[FullACED.stats$Node[irow]]])
+ stat$setProfOrder(canonicalOrder)
+ stat
+})
+names(stats) <- lapply(stats,\(s) s$name)
+STATLIST <- stats
+```
+
+## Massage data
+
+There are a couple of demographic variables in ACED.items, and data are coded 0,1; not 2,1.
+
+```{r}
+ACED.data <- as.matrix(2-ACED.items[,-(1:3)])
+rownames(ACED.data) <- ACED.items$AltID
+DATA <- ACED.data
+```
+
+
+## Set OPTIONS
+
+```{r}
+OPTIONS <- list(
+  maxit=100L,  ## Maximum EM Loops
+  mit=100L,    ## Maximum Inner Mstep
+  stepit=5L,  ## Number of steps between tests
+  tolerance=.0001, ## Stopping criteria for convergence
+  progress=1L, ## Print message every X iterations
+  log=NULL ## list of parameters to log about
+)
+
+```
+
+
+
+# Setup Clusters
+
+## Setup Redis
+
+Redis instance
+
+```{r}
+rurl <- "redis://localhost:6379"
+TRED <- tred$new(rurl)
+if (TRUE) {
+  TRED$red$FLUSHDB()
+}
+```
+
+Collections we will use:
+
+* `CPT.prof` -- Proficiency model tensor
+
+* `CPT.`_em_`.`_value_ -- evidence model tensors
+
+* `Dat.`_em_`.`_value_ -- evidence model data
+
+* `Dat.`_profvar_ -- proficiency model data
+
+* `lp` -- log posterior
+
+
+## Build Proficiency Model
+
+```{r}
+prof <- buildProficiencies(FACTORS,TRED)
+```
+
+## Generate CPTs for evidence models
+
+
+```{r}
+lapply(EMS,\(cpt) {TRED$SETCHUNKS(cpt)})
+```
+
+## Setup Clusters
+
+```{r}
+nstudents <- nrow(ACED.data)
+cl <- makeCluster(detectCores()-2)
+clusterCall(cl,\(){library(CPTtorch)})
+clusterExport(cl,"rurl")
+clusterCall(cl,\(){TRED <<- tred$new(rurl)})
+clusterExport(cl,c("DATA","STATLIST","OMEGA","QQ","FACTORS","EMS","OPTIONS"))
+```
+
+# Scoring
+
+
+```{r}
+scores <- parLapply(cl,1:nstudents,scoreStats) |>
+  purrr::list_rbind()
+row.names(scores) <- row.names(DATA)
+```
+
+
+
+
+# EM Algorithm
+
+
+
+```{r}
+EMloop(cl,DATA,EMS,OPTIONS,TRED)
+```
+
+
+
 
