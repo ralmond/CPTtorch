@@ -457,6 +457,18 @@ ConjunctiveRule <- torch::nn_module(
      )
 )
 
+ConjunctiveGRRule <- torch::nn_module(
+  classname="ConjunctiveGRRule",
+  inherit = RuleBSA,
+  bop = "torch_sub",
+  summary = "torch_amin",
+  aop = "torch_mul",
+  private=list(
+    atype=PType("pos",c(1,1)),
+    btype=PType("real",c(K,J))
+  )
+)
+
 ### DisjunctiveRule ----
 
 DisjunctiveRule <- torch::nn_module(
@@ -467,6 +479,18 @@ DisjunctiveRule <- torch::nn_module(
     aop = "torch_mul",
     private=list(
         atype=PType("pos",c(K,1)),
+        btype=PType("real",c(K,J))
+     )
+)
+
+DisjunctiveGRRule <- torch::nn_module(
+    classname="DisjunctiveGRRule",
+    inherit = RuleBSA,
+    bop = "torch_sub",
+    summary = "torch_amax",
+    aop = "torch_mul",
+    private=list(
+        atype=PType("pos",c(1,1)),
         btype=PType("real",c(K,J))
      )
 )
@@ -554,6 +578,8 @@ setRule("Conjunctive",ConjunctiveRule)
 setRule("ConjunctiveRule",ConjunctiveRule)
 setRule("Disjunctive",DisjunctiveRule)
 setRule("DisjunctiveRule",DisjunctiveRule)
+setRule("ConjunctiveGR",ConjunctiveGRRule)
+setRule("DisjunctiveGR",DisjunctiveGRRule)
 setRule("NoisyAnd",NoisyAndRule)
 setRule("NoisyAndRule",NoisyAndRule)
 setRule("NoisyOr",NoisyOrRule)

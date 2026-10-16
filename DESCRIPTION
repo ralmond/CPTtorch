@@ -1,8 +1,8 @@
 Package: CPTtorch
 Type: Package
 Title: Building Conditional Probality Tables with Torch
-Date: 2026/07/14
-Version: 0.1.2
+Date: 2026/09/25
+Version: 0.2.1
 Author: Russell G. Almond
 Maintainer: Russell Almond <ralmond@fsu.edu>
 Authors@R: 
@@ -29,7 +29,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 URL: http://pluto.coe.fsu.edu/RNetica
 Depends: 
-    methods, torch, R6,
+    methods, torch, R6, redux,
     R (>= 4.1.0)
 Imports: stats, utils, rlang, purrr, mgcv
 Suggests: 
@@ -46,7 +46,7 @@ Suggests:
     jsonlite,
     ACED,
     testthat (>= 3.0.0)
-Collate:  zzz.R transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R writer.R
+Collate:  zzz.R transformations.R projectOp.R pType.R Rules.R Link.R CPT.R CognitivelyDiagnosticModel.R writer.R statistics.R tred.R scoring.R
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 Support:  'National Science Foundation grant "Accelerating Professional Learning Through an Intelligent Performance Assessment System": DRL-2506438'

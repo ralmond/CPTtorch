@@ -112,7 +112,8 @@ export(effectiveTheta,effectiveTheta10,buildpTheta10,
 export(CombinationRule,RuleASB,RuleBSA,RuleBAS,RuleConstB,RuleConstA)
 export(getRule,setRule,availableRules)
 export(CompensatoryRule,CompensatoryGRRule,ConjunctiveRule,
-       DisjunctiveRule,NoisyAndRule,NoisyOrRule,CenterRule,
+       ConjunctiveGRRule, DisjunctiveRule, DisjunctiveGRRule,
+       NoisyAndRule,NoisyOrRule,CenterRule,
        DirichletRule)
 
 
@@ -125,4 +126,13 @@ export(CPT_Model,fit2table,deviance_loss,penalty_fun)
 
 export(Cognitively_Diagnostic_Model, fit_with_EM)
 
+
 export(readCPT,writeCPT)
+
+export(Node,Statistic,Margin,EAP,SD,Median,Mode)
+
+export(tred,buildProficiencies,scoreOne,
+       calcStats,scoreStats,expMatProf,expMatEvid,
+       EStepScore,
+       MstepProf,MstepEvid,Mstep,calcLP,EMloop)
+
