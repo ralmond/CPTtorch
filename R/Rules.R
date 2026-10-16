@@ -571,15 +571,23 @@ availableRules <- function() {
 }
 
 setRule("Compensatory",CompensatoryRule)
+setRule("CompensatoryRule",CompensatoryRule)
 setRule("CompensatoryGR",CompensatoryGRRule)
+setRule("CompensatoryGRRule",CompensatoryGRRule)
 setRule("Conjunctive",ConjunctiveRule)
+setRule("ConjunctiveRule",ConjunctiveRule)
 setRule("Disjunctive",DisjunctiveRule)
+setRule("DisjunctiveRule",DisjunctiveRule)
 setRule("ConjunctiveGR",ConjunctiveGRRule)
 setRule("DisjunctiveGR",DisjunctiveGRRule)
 setRule("NoisyAnd",NoisyAndRule)
+setRule("NoisyAndRule",NoisyAndRule)
 setRule("NoisyOr",NoisyOrRule)
+setRule("NoisyOrRule",NoisyOrRule)
 setRule("Center",CenterRule)
+setRule("CenterRule",CenterRule)
 setRule("Dirichlet",DirichletRule)
+setRule("DirichletRule",DirichletRule)
 
 
 

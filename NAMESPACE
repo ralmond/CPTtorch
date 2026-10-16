@@ -126,6 +126,9 @@ export(CPT_Model,fit2table,deviance_loss,penalty_fun)
 
 export(Cognitively_Diagnostic_Model, fit_with_EM)
 
+
+export(readCPT,writeCPT)
+
 export(Node,Statistic,Margin,EAP,SD,Median,Mode)
 
 export(tred,buildProficiencies,scoreOne,
