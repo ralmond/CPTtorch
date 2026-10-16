@@ -182,6 +182,38 @@ test_that("GradedResponseLink",{
   expect_equal(cpt, expected, tolerance = .00001)
 })
 
+test_that("GradedResponse CPTs stay non-degenerate under high2low",{
+  # Regression for the interaction between `defaultParameter.incrK`'s
+  # high2low branch and `CompensatoryRule$forward`'s `torch_flipud`. Both
+  # reverse bMat, so they cancel and et reaches the link in one canonical
+  # across-cut order. A sign that switched on high2low therefore sent a
+  # DECREASING sequence into cuts2simplex under the flag, whose cummax
+  # flattened the middle: every interior category came out exactly 0.
+  mk <- function(h2l) {
+    CPT_Model$new("CompensatoryGR","GradedResponse",
+                  parents=list(S1=effectiveTheta(4,high2low=h2l)),
+                  states=c("a","b","c","d"), high2low=h2l)
+  }
+  cpt_lo <- as.matrix(mk(FALSE)$forward())
+  cpt_hi <- as.matrix(mk(TRUE)$forward())
+
+  # Every category is reachable in both directions.
+  expect_true(all(cpt_lo > 0))
+  expect_true(all(cpt_hi > 0))
+
+  # Both are proper conditional distributions.
+  expect_equal(rowSums(cpt_lo), rep(1,nrow(cpt_lo)), tolerance=.00001)
+  expect_equal(rowSums(cpt_hi), rep(1,nrow(cpt_hi)), tolerance=.00001)
+
+  # The load-bearing one: under high2low index 1 is the highest level for
+  # BOTH the parent and the child, so the table is the 180-degree rotation of
+  # the low-to-high one -- rows and columns reversed. Exact (max abs diff 0)
+  # for 3- and 4-state models. This is the assertion that would have caught
+  # the sign interaction: the degenerate table still had valid rows summing
+  # to 1, so only a relational check finds it.
+  expect_equal(cpt_hi, cpt_lo[nrow(cpt_lo):1, ncol(cpt_lo):1], tolerance=.0001)
+})
+
 test_that("PartialCreditLink",{
   pcl <- getLink("PartialCredit")$new(3)
   et <- matrix(c(effectiveTheta(3),effectiveTheta(3)+1),3,2)
